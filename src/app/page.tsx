@@ -5,6 +5,7 @@ import { HeroParallax } from "@/components/ui/hero-parallax";
 import { useBooks } from "@/hooks";
 import { useMemo } from "react";
 import { transformBooksForParallax } from "@/lib/parallax-books";
+import { ThreeDCardDemo } from "@/components/ui/card";
 
 export default function Home() {
   const { books, loading } = useBooks();
@@ -31,6 +32,8 @@ export default function Home() {
         ) : (
           <>
             <HeroParallax products={paddedBooks} />
+            <ThreeDCardDemo/>
+           
             <BooksExample />
           </>
         )}
