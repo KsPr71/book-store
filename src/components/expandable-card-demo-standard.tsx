@@ -25,6 +25,10 @@ export default function ExpandableCardDemo() {
   const [authorDetails, setAuthorDetails] = useState<AuthorWithBooks | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const autoScrollRef = useRef<number | null>(null);
+  const isUserScrollingRef = useRef<boolean>(false);
+  const restartTimeoutRef = useRef<number | null>(null);
   const id = useId();
 
   // Transformar autores al formato que espera el componente
@@ -67,6 +71,110 @@ export default function ExpandableCardDemo() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [active]);
+
+  // Auto-scroll animado para la descripción
+  useEffect(() => {
+    if (!scrollContainerRef.current || !active || typeof active !== "object") {
+      // Limpiar el auto-scroll si el modal está cerrado
+      if (autoScrollRef.current) {
+        cancelAnimationFrame(autoScrollRef.current);
+        autoScrollRef.current = null;
+      }
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    const descriptionElement = descriptionRef.current;
+    
+    if (!descriptionElement) return;
+
+    // Detectar cuando el usuario hace scroll manual
+    const handleUserScroll = () => {
+      isUserScrollingRef.current = true;
+    };
+
+    container.addEventListener('wheel', handleUserScroll, { passive: true });
+    container.addEventListener('touchstart', handleUserScroll, { passive: true });
+    container.addEventListener('touchmove', handleUserScroll, { passive: true });
+
+    // Variables para manejar el auto-scroll
+    let startTime: number | null = null;
+    let startScroll = 0;
+
+    // Esperar a que el contenido se cargue completamente
+    const timeout = setTimeout(() => {
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      
+      // Si no hay scroll necesario, no hacer nada
+      if (maxScroll <= 0) return;
+
+      const duration = Math.max(10000, maxScroll * 50); // Duración mínima de 10 segundos, ajustada según el contenido
+
+      const animate = (currentTime: number) => {
+        if (startTime === null) {
+          startTime = currentTime;
+          startScroll = container.scrollTop;
+        }
+
+        // Si el usuario está haciendo scroll manual, pausar
+        if (isUserScrollingRef.current) {
+          startTime = currentTime; // Reiniciar el tiempo
+          startScroll = container.scrollTop; // Actualizar la posición inicial
+          isUserScrollingRef.current = false;
+          autoScrollRef.current = requestAnimationFrame(animate);
+          return;
+        }
+
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Función de easing suave (ease-in-out)
+        const easeInOut = (t: number) => t < 0.5 
+          ? 2 * t * t 
+          : -1 + (4 - 2 * t) * t;
+
+        const easedProgress = easeInOut(progress);
+        const newScroll = startScroll + (maxScroll - startScroll) * easedProgress;
+
+        container.scrollTop = newScroll;
+
+        if (progress < 1) {
+          autoScrollRef.current = requestAnimationFrame(animate);
+        } else {
+          // Cuando llega al final, esperar 2 segundos y volver al inicio
+          restartTimeoutRef.current = window.setTimeout(() => {
+            container.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            });
+            // Reiniciar después de que termine la animación de vuelta
+            restartTimeoutRef.current = window.setTimeout(() => {
+              startTime = null;
+              autoScrollRef.current = requestAnimationFrame(animate);
+            }, 500);
+          }, 2000);
+        }
+      };
+
+      // Iniciar la animación
+      autoScrollRef.current = requestAnimationFrame(animate);
+    }, 300);
+
+    return () => {
+      clearTimeout(timeout);
+      if (restartTimeoutRef.current !== null) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
+      }
+      if (autoScrollRef.current) {
+        cancelAnimationFrame(autoScrollRef.current);
+        autoScrollRef.current = null;
+      }
+      container.removeEventListener('wheel', handleUserScroll);
+      container.removeEventListener('touchstart', handleUserScroll);
+      container.removeEventListener('touchmove', handleUserScroll);
+    };
+  }, [active, authorDetails]);
 
   useOutsideClick(ref, () => setActive(null));
 
@@ -179,11 +287,16 @@ export default function ExpandableCardDemo() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="text-neutral-600 text-xs md:text-sm lg:text-base h-40 md:h-fit pb-10 flex flex-col items-start gap-4 overflow-auto dark:text-neutral-400 [mask:linear-gradient(to_bottom,white,white,transparent)] [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch]"
+                    className="text-neutral-600 text-xs md:text-sm lg:text-base h-40 md:h-60 lg:h-72 pb-10 flex flex-col items-start gap-4 overflow-auto dark:text-neutral-400 [mask:linear-gradient(to_bottom,white,white,transparent)] [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch]"
                   >
                     {authorDetails?.books && authorDetails.books.length > 0 ? (
                       <div>
-                        <p className="mb-4">{typeof active.content === "function" ? active.content() : active.content}</p>
+                        <p 
+                          ref={descriptionRef}
+                          className="mb-4 leading-relaxed"
+                        >
+                          {typeof active.content === "function" ? active.content() : active.content}
+                        </p>
                         <div className="mt-4" data-books-section>
                           <h4 className="font-semibold mb-3 text-lg text-neutral-800 dark:text-neutral-200">Libros de este autor:</h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -214,7 +327,12 @@ export default function ExpandableCardDemo() {
                       </div>
                     ) : (
                       <div>
-                        <p className="mb-4">{typeof active.content === "function" ? active.content() : active.content}</p>
+                        <p 
+                          ref={descriptionRef}
+                          className="mb-4 leading-relaxed"
+                        >
+                          {typeof active.content === "function" ? active.content() : active.content}
+                        </p>
                         <div data-books-section className="mt-4 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
                           <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center">
                             Este autor aún no tiene libros disponibles.

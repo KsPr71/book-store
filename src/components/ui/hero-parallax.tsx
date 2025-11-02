@@ -73,9 +73,9 @@ export const HeroParallax = ({
           translateY,
           opacity,
         }}
-        className=""
+        className="flex flex-col items-center justify-center"
       >
-        <motion.div className="flex flex-row-reverse space-x-reverse space-x-20 mb-20">
+        <motion.div className="flex flex-row-reverse space-x-reverse space-x-20 mb-20 justify-center">
           {firstRow.map((product, index) => (
             <ProductCard
               product={product}
@@ -84,7 +84,7 @@ export const HeroParallax = ({
             />
           ))}
         </motion.div>
-        <motion.div className="flex flex-row  mb-20 space-x-20 ">
+        <motion.div className="flex flex-row mb-20 space-x-20 justify-center">
           {secondRow.map((product, index) => (
             <ProductCard
               product={product}
@@ -93,7 +93,7 @@ export const HeroParallax = ({
             />
           ))}
         </motion.div>
-        <motion.div className="flex flex-row-reverse space-x-reverse space-x-20">
+        <motion.div className="flex flex-row-reverse space-x-reverse space-x-20 justify-center">
           {thirdRow.map((product, index) => (
             <ProductCard
               product={product}
