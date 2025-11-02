@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card";
 import { useBooks } from "@/hooks";
+import BookSpeedDial from "@/components/ui/speedDial";
 
 import type { BookWithRelations } from '@/types/database';
 
@@ -183,6 +184,71 @@ function BookCard({ book }: BookCardProps) {
 
 export function ThreeDCardDemo() {
   const { booksWithRelations, loading } = useBooks();
+  const [searchFilter, setSearchFilter] = React.useState<'name' | 'author' | 'year' | null>(null);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [sortType, setSortType] = React.useState<'alphabetical' | 'author' | null>(null);
+
+  // Filtrar solo libros disponibles o en draft
+  const availableBooks = React.useMemo(() => {
+    return booksWithRelations.filter(
+      (book) => book.status === 'available' || book.status === 'draft'
+    );
+  }, [booksWithRelations]);
+
+  // Filtrar libros según el tipo de búsqueda
+  const filteredBooks = React.useMemo(() => {
+    if (!searchTerm.trim() || !searchFilter) {
+      return availableBooks;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+
+    return availableBooks.filter((book) => {
+      switch (searchFilter) {
+        case 'name':
+          return (
+            book.title.toLowerCase().includes(term) ||
+            book.subtitle?.toLowerCase().includes(term)
+          );
+        case 'author':
+          return book.authors?.some((author) =>
+            author.full_name.toLowerCase().includes(term)
+          );
+        case 'year':
+          if (book.publication_date) {
+            const year = new Date(book.publication_date).getFullYear().toString();
+            return year.includes(term);
+          }
+          return false;
+        default:
+          return true;
+      }
+    });
+  }, [availableBooks, searchTerm, searchFilter]);
+
+  // Ordenar libros
+  const sortedBooks = React.useMemo(() => {
+    if (!sortType) {
+      return filteredBooks;
+    }
+
+    const books = [...filteredBooks];
+
+    switch (sortType) {
+      case 'alphabetical':
+        return books.sort((a, b) => a.title.localeCompare(b.title));
+      case 'author':
+        return books.sort((a, b) => {
+          const authorA = a.authors?.[0]?.full_name || '';
+          const authorB = b.authors?.[0]?.full_name || '';
+          return authorA.localeCompare(authorB);
+        });
+      default:
+        return books;
+    }
+  }, [filteredBooks, sortType]);
+
+  const displayBooks = sortedBooks;
 
   if (loading) {
     return (
@@ -200,18 +266,55 @@ export function ThreeDCardDemo() {
     );
   }
 
-  // Filtrar solo libros disponibles o en draft
-  const displayBooks = booksWithRelations.filter(
-    (book) => book.status === 'available' || book.status === 'draft'
-  );
-
   return (
-    <div className="py-20 px-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto w-full">
-        {displayBooks.map((book) => (
-          <BookCard key={book.book_id} book={book} />
-        ))}
-      </div>
+    <div className="py-20 px-4 relative">
+      {/* Campo de búsqueda */}
+      {searchFilter && (
+        <div className="mb-6 max-w-md mx-auto">
+          <input
+            type="text"
+            placeholder={
+              searchFilter === 'name'
+                ? 'Buscar por nombre del libro...'
+                : searchFilter === 'author'
+                ? 'Buscar por nombre del autor...'
+                : 'Buscar por año de publicación...'
+            }
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        </div>
+      )}
+
+      {/* SpeedDial */}
+      <BookSpeedDial
+        onSearchBy={(type) => {
+          setSearchFilter(type);
+          if (!type) {
+            setSearchTerm('');
+          }
+        }}
+        onSortBy={(type) => setSortType(type)}
+        currentSearchFilter={searchFilter}
+        currentSort={sortType}
+      />
+
+      {displayBooks.length === 0 ? (
+        <div className="flex items-center justify-center py-20">
+          <p className="text-lg text-neutral-600 dark:text-neutral-400">
+            {searchTerm
+              ? `No se encontraron libros que coincidan con "${searchTerm}"`
+              : 'No hay libros disponibles'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto w-full">
+          {displayBooks.map((book) => (
+            <BookCard key={book.book_id} book={book} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
