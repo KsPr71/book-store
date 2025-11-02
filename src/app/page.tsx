@@ -9,7 +9,7 @@ import { ThreeDCardDemo } from "@/components/ui/card";
 import ExpandableCardDemo from "@/components/expandable-card-demo-standard";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { Devider } from "@/components/ui/Devider";
-import { LoaderOne, LoaderTwo } from "@/components/ui/loader";
+import { LoaderOne } from "@/components/ui/loader";
 
 export default function Home() {
   const { books, loading } = useBooks();
@@ -63,7 +63,7 @@ export default function Home() {
                 
               </div>
             ) : paddedBooks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-screen space-y-4">
+              <div className="flex flex-col items-center justify-center h-screen space-y-4 ">
                 <p className="text-xl font-semibold">No hay libros disponibles</p>
                 <p className="text-gray-600">
                   Agrega libros a tu base de datos con <code className="bg-gray-100 px-2 py-1 rounded">status: &apos;available&apos;</code> y una imagen de portada para verlos aquí.
@@ -72,7 +72,7 @@ export default function Home() {
             ) : (
               <>
                 <HeroParallax products={paddedBooks} />
-                <div id="libros" className="py-20">
+                <div id="libros" className="py-20 margin-left-4">
                   <Devider title="Libros" />
                   <ThreeDCardDemo />
                 </div>
