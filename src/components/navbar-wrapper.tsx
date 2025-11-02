@@ -4,12 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useNavigation } from "@/contexts/NavigationContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Navbar, NavBody, MobileNav, MobileNavHeader, MobileNavMenu, MobileNavToggle } from "@/components/ui/resizable-navbar";
 
 export function NavbarWrapper() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
   const { setActiveSection } = useNavigation();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { name: "Inicio", link: "/", section: "inicio" },
@@ -56,6 +58,25 @@ export function NavbarWrapper() {
               <span className="relative z-20">{item.name}</span>
             </Link>
           ))}
+          {user && (
+            <button
+              onClick={async () => {
+                await logout();
+                window.location.href = '/';
+              }}
+              className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors ml-4"
+            >
+              Cerrar sesión
+            </button>
+          )}
+          {!user && (
+            <Link
+              href="/login"
+              className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors ml-4"
+            >
+              Iniciar sesión
+            </Link>
+          )}
         </motion.div>
       </NavBody>
       <MobileNav>
@@ -63,9 +84,9 @@ export function NavbarWrapper() {
           <Link 
             href="/" 
             onClick={() => setActiveSection("inicio")}
-            className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-sm font-normal text-black"
+            className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-sm font-normal text-black dark:text-white"
           >
-            <span className="font-medium text-black dark:text-white">BookStore</span>
+            <span className="font-medium text-black dark:text-white">Click & Read</span>
           </Link>
           <MobileNavToggle 
             isOpen={isMobileMenuOpen} 
@@ -89,6 +110,26 @@ export function NavbarWrapper() {
               {item.name}
             </Link>
           ))}
+          {user ? (
+            <button
+              onClick={async () => {
+                await logout();
+                setIsMobileMenuOpen(false);
+                window.location.href = '/';
+              }}
+              className="block w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+            >
+              Cerrar sesión
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="block px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Iniciar sesión
+            </Link>
+          )}
         </MobileNavMenu>
       </MobileNav>
     </Navbar>

@@ -34,7 +34,7 @@ export default function ExpandableCardDemo() {
       title: author.full_name,
       description: author.nationality || "Autor",
       src: author.photo_url || "/placeholder-author.jpg",
-      ctaText: "Ver Libros",
+      ctaText: "Detalles",
       ctaLink: author.website || `/author/${author.author_id}`,
       content: author.biography || "No hay biografía disponible para este autor.",
     }));

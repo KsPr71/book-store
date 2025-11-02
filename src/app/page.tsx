@@ -9,6 +9,7 @@ import { ThreeDCardDemo } from "@/components/ui/card";
 import ExpandableCardDemo from "@/components/expandable-card-demo-standard";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { Devider } from "@/components/ui/Devider";
+import { LoaderOne, LoaderTwo } from "@/components/ui/loader";
 
 export default function Home() {
   const { books, loading } = useBooks();
@@ -58,7 +59,8 @@ export default function Home() {
           <>
             {loading ? (
               <div className="flex items-center justify-center h-screen">
-                <p className="text-lg">Cargando libros...</p>
+                <LoaderOne/>
+                
               </div>
             ) : paddedBooks.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-screen space-y-4">
