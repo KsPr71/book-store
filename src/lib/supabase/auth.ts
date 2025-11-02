@@ -19,6 +19,7 @@ export async function signUp({ email, password, firstName, lastName }: SignUpDat
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/`,
         data: {
           first_name: firstName,
           last_name: lastName,
@@ -45,12 +46,33 @@ export async function signIn({ email, password }: AuthCredentials) {
       password,
     });
 
-    if (error) throw error;
+    if (error) {
+      // Si el error es que el email no está confirmado, intentar reenviar el email de confirmación
+      if (error.message === 'Email not confirmed' || error.message?.includes('email')) {
+        // Intentar reenviar email de confirmación como alternativa
+        await supabase.auth.resend({
+          type: 'signup',
+          email,
+        });
+      }
+      throw error;
+    }
 
     return { data, error: null };
   } catch (error: any) {
     console.error('Error signing in:', error);
-    return { data: null, error: error.message || 'Error al iniciar sesión' };
+    
+    // Mensaje de error más amigable
+    let errorMessage = 'Error al iniciar sesión';
+    if (error.message === 'Email not confirmed' || error.message?.includes('email')) {
+      errorMessage = 'Tu email no ha sido confirmado. Si ya configuraste Supabase para no requerir confirmación, intenta crear una nueva cuenta o contacta al administrador.';
+    } else if (error.message === 'Invalid login credentials') {
+      errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+    } else {
+      errorMessage = error.message || 'Error al iniciar sesión';
+    }
+    
+    return { data: null, error: errorMessage };
   }
 }
 

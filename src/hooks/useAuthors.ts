@@ -44,6 +44,7 @@ export function useAuthors() {
 
     // Funciones
     refreshAuthors,
+    refreshAll: refreshAuthors,
     searchAuthors,
     getAuthorById,
   };

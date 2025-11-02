@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { checkIsAdmin } from "@/lib/supabase/admin";
 import { Navbar, NavBody, MobileNav, MobileNavHeader, MobileNavMenu, MobileNavToggle } from "@/components/ui/resizable-navbar";
 
 export function NavbarWrapper() {
@@ -12,6 +13,7 @@ export function NavbarWrapper() {
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
   const { setActiveSection } = useNavigation();
   const { user, logout } = useAuth();
+  const isAdminUser = user ? checkIsAdmin(user.email) : false;
 
   const navItems = [
     { name: "Inicio", link: "/", section: "inicio" },
@@ -58,6 +60,14 @@ export function NavbarWrapper() {
               <span className="relative z-20">{item.name}</span>
             </Link>
           ))}
+          {isAdminUser && (
+            <Link
+              href="/admin"
+              className="relative px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors ml-4 font-medium"
+            >
+              Admin
+            </Link>
+          )}
           {user && (
             <button
               onClick={async () => {
@@ -110,6 +120,15 @@ export function NavbarWrapper() {
               {item.name}
             </Link>
           ))}
+          {isAdminUser && (
+            <Link
+              href="/admin"
+              className="block px-4 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200 font-medium"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Admin
+            </Link>
+          )}
           {user ? (
             <button
               onClick={async () => {

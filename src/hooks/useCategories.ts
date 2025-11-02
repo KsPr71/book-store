@@ -70,6 +70,7 @@ export function useCategories() {
 
     // Funciones
     refreshCategories,
+    refreshAll: refreshCategories,
     getSubcategories,
     getCategoryById,
     getParentCategory,

@@ -46,23 +46,23 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
           setError(error);
         } else {
           router.push('/');
-        router.refresh();
+          router.refresh();
         }
       } else {
         const { error } = await signUp(email, password, firstName, lastName);
         if (error) {
           setError(error);
         } else {
-          setMessage('¡Registro exitoso! Por favor verifica tu email para confirmar tu cuenta.');
-          // Opcional: redirigir después de un tiempo
+          setMessage('¡Registro exitoso! Redirigiendo...');
+          // Redirigir inmediatamente ya que no se requiere confirmación
           setTimeout(() => {
             router.push('/');
             router.refresh();
-          }, 2000);
+          }, 1000);
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Ocurrió un error inesperado');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
     }
