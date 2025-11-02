@@ -96,7 +96,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <div className="flex-col min-h-screen w-full md:w-3/4 lg:w-3/4 justify-between py-32 px-16 bg-white dark:bg-black lg:items-start width-full">
+      <div className="flex-col min-h-screen w-full justify-between py-32 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 bg-white dark:bg-black lg:items-start">
         {renderContent()}
       </div>
     </div>
