@@ -25,11 +25,23 @@ function BookCard({ book }: BookCardProps) {
     console.log(`⚠️ Libro "${book.title}" no tiene autores asociados. Asegúrate de crear registros en la tabla book_authors.`);
   }
   
-  // Crear mensaje de WhatsApp
+  // Número de WhatsApp del admin (cambia este número por el número real del admin)
+  // Formato: código de país + número (ejemplo: 521234567890 para México: +52 12 3456 7890)
+  const ADMIN_WHATSAPP_NUMBER = '52708602'; // TODO: Reemplazar con el número real del admin
+  
+  // Crear mensaje de WhatsApp dirigido al admin
   const whatsappMessage = encodeURIComponent(
-    `Hola, me interesa solicitar el libro "${book.title}"${mainAuthor ? ` de ${mainAuthor.full_name}` : ''}.`
+    `¡Hola! 👋\n\nMe interesa solicitar el siguiente libro:\n\n📚 *${book.title}*${mainAuthor ? `\n👤 Autor: ${mainAuthor.full_name}` : ''}${book.price ? `\n💰 Precio: $${book.price.toFixed(2)}` : ''}\n\n¿Podrías ayudarme con más información?`
   );
-  const whatsappUrl = `https://wa.me/?text=${whatsappMessage}`;
+  // URL de WhatsApp con el número del admin y mensaje prellenado
+  const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${whatsappMessage}`;
+  
+  const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.stopPropagation(); // Prevenir que el click se propague a la card
+    e.preventDefault(); // Prevenir el comportamiento por defecto del enlace
+    // Abrir WhatsApp en una nueva ventana
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
 
   const handleCardClick = () => {
     router.push(`/book/${book.book_id}`);
@@ -122,13 +134,19 @@ function BookCard({ book }: BookCardProps) {
         </div>
         
         {/* Botón de WhatsApp */}
-        <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="mt-3" 
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+        >
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white text-xs font-medium transition-colors duration-200 w-full"
+            onClick={handleWhatsAppClick}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white text-xs font-medium transition-colors duration-200 w-full cursor-pointer"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
