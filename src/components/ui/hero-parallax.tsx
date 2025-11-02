@@ -8,6 +8,7 @@ import {
   MotionValue,
 } from "motion/react";
 import Image from "next/image";
+import Link from "next/link";
 
 
 
@@ -144,7 +145,7 @@ export const ProductCard = ({
       }}
       className="group/product h-[28rem] w-[18rem] relative shrink-0"
     >
-      <a
+      <Link
         href={product.link}
         className="block group-hover/product:shadow-2xl relative w-full h-full"
       >
@@ -170,7 +171,7 @@ export const ProductCard = ({
             <span className="text-gray-400">Sin imagen</span>
           </div>
         )}
-      </a>
+      </Link>
       <div className="absolute inset-0 h-full w-full opacity-0 group-hover/product:opacity-80 bg-black pointer-events-none"></div>
       <h2 className="absolute bottom-4 left-4 opacity-0 group-hover/product:opacity-100 text-white z-10">
         {product.title}

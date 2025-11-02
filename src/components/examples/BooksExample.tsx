@@ -6,7 +6,9 @@
  */
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useBooks, useAuthors, useCategories } from '@/hooks';
+import { InfiniteMovingCards } from '../ui/infinite-moving-cards';
 
 export function BooksExample() {
   const { books, featuredBooks, loading: loadingBooks } = useBooks();
@@ -15,120 +17,104 @@ export function BooksExample() {
 
   if (loadingBooks || loadingAuthors || loadingCategories) {
     return (
-      <div className="p-4">
-        <p>Cargando datos de la base de datos...</p>
+      <div className="p-2">
+        <p className="text-sm">Cargando datos...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-8">
-      {/* Resumen */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Resumen</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="p-4 border rounded">
-            <p className="text-sm text-gray-600">Total de Libros</p>
-            <p className="text-3xl font-bold">{books.length}</p>
-          </div>
-          <div className="p-4 border rounded">
-            <p className="text-sm text-gray-600">Total de Autores</p>
-            <p className="text-3xl font-bold">{authors.length}</p>
-          </div>
-          <div className="p-4 border rounded">
-            <p className="text-sm text-gray-600">Categorías Principales</p>
-            <p className="text-3xl font-bold">{mainCategories.length}</p>
-          </div>
+    <div className="p-4 space-y-4">
+      {/* Resumen compacto */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="p-2 border rounded bg-neutral-50 dark:bg-neutral-900">
+          <p className="text-xs text-gray-600 dark:text-gray-400">Libros</p>
+          <p className="text-xl font-bold">{books.length}</p>
         </div>
-      </section>
+        <div className="p-2 border rounded bg-neutral-50 dark:bg-neutral-900">
+          <p className="text-xs text-gray-600 dark:text-gray-400">Autores</p>
+          <p className="text-xl font-bold">{authors.length}</p>
+        </div>
+        <div className="p-2 border rounded bg-neutral-50 dark:bg-neutral-900">
+          <p className="text-xs text-gray-600 dark:text-gray-400">Categorías</p>
+          <p className="text-xl font-bold">{mainCategories.length}</p>
+        </div>
+      </div>
 
-      {/* Libros Destacados */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Libros Destacados</h2>
-        {featuredBooks.length === 0 ? (
-          <p className="text-gray-500">No hay libros destacados aún.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Libros Destacados compactos */}
+      {featuredBooks.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold mb-2 text-neutral-800 dark:text-neutral-200">Libros Destacados</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {featuredBooks.slice(0, 6).map((book) => (
-              <div key={book.book_id} className="border rounded p-4">
-                {/* Mostrar portada (cover_image_url) si existe */}
+              <Link
+                key={book.book_id}
+                href={`/book/${book.book_id}`}
+                className="border rounded p-2 hover:shadow-md transition-shadow bg-white dark:bg-neutral-900"
+              >
                 {book.cover_image_url && (
-                  <div className="relative w-full h-48 rounded mb-4 overflow-hidden">
+                  <div className="relative w-full aspect-[2/3] rounded mb-1 overflow-hidden">
                     <Image
                       src={book.cover_image_url}
                       alt={book.title}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      onError={(e) => {
-                        // Ocultar imagen si no carga
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                      }}
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                     />
                   </div>
                 )}
-                <h3 className="font-semibold text-lg">{book.title}</h3>
-                {book.subtitle && (
-                  <p className="text-sm text-gray-600">{book.subtitle}</p>
-                )}
-                {book.price > 0 && (
-                  <p className="text-lg font-bold mt-2">${book.price.toFixed(2)}</p>
-                )}
-                <span
-                  className={`inline-block mt-2 px-2 py-1 rounded text-xs ${
-                    book.status === 'available'
-                      ? 'bg-green-100 text-green-800'
-                      : book.status === 'out_of_stock'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {book.status}
-                </span>
-              </div>
+                <h4 className="font-medium text-xs line-clamp-2 mb-1">{book.title}</h4>
+                <div className="flex items-center justify-between">
+                  {book.price > 0 && (
+                    <span className="text-xs font-bold">${book.price.toFixed(2)}</span>
+                  )}
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded ${
+                      book.status === 'available'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : book.status === 'out_of_stock'
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {book.status === 'available' ? '✓' : book.status === 'out_of_stock' ? '✗' : '•'}
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
-        )}
-      </section>
+        </div>
+      )}
 
-      {/* Lista de Categorías */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Categorías</h2>
-        {mainCategories.length === 0 ? (
-          <p className="text-gray-500">No hay categorías aún.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
+      {/* Categorías compactas */}
+      {mainCategories.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold mb-2 text-neutral-800 dark:text-neutral-200">Categorías</h3>
+          <div className="flex flex-wrap gap-1.5">
             {mainCategories.map((category) => (
               <span
                 key={category.category_id}
-                className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs"
               >
                 {category.category_name}
               </span>
             ))}
           </div>
-        )}
-      </section>
+        </div>
+      )}
 
-      {/* Lista de Autores */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Autores</h2>
-        {authors.length === 0 ? (
-          <p className="text-gray-500">No hay autores aún.</p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {authors.slice(0, 8).map((author) => (
-              <div key={author.author_id} className="border rounded p-3">
-                <p className="font-semibold">{author.full_name}</p>
-                {author.nationality && (
-                  <p className="text-sm text-gray-600">{author.nationality}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* Autores compactos */}
+      {authors.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold mb-2 text-neutral-800 dark:text-neutral-200">Autores</h3>
+          <InfiniteMovingCards items={authors.slice(0, 12).map((author) => ({
+            name: author.full_name,
+            title: author.nationality || undefined,
+            photo_url: author.photo_url || undefined,
+          }))} />
+          
+        </div>
+      )}
     </div>
   );
 }

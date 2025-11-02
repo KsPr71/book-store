@@ -24,6 +24,7 @@ export default function ExpandableCardDemo() {
   const [active, setActive] = useState<AuthorCard | boolean | null>(null);
   const [authorDetails, setAuthorDetails] = useState<AuthorWithBooks | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const id = useId();
 
   // Transformar autores al formato que espera el componente
@@ -149,18 +150,31 @@ export default function ExpandableCardDemo() {
                     </motion.p>
                   </div>
 
-                  <motion.a
+                  <motion.button
                     layoutId={`button-${active.title}-${id}`}
-                    href={active.ctaLink}
-                    target={active.ctaLink.startsWith("http") ? "_blank" : undefined}
-                    rel={active.ctaLink.startsWith("http") ? "noopener noreferrer" : undefined}
-                    className="px-4 py-3 text-sm rounded-full font-bold bg-green-500 text-white hover:bg-green-600 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const booksSection = scrollContainerRef.current?.querySelector('[data-books-section]') as HTMLElement;
+                      
+                      if (booksSection && scrollContainerRef.current) {
+                        // Calcular la posición relativa dentro del contenedor scrollable
+                        const scrollContainer = scrollContainerRef.current;
+                        const sectionOffset = booksSection.offsetTop - scrollContainer.offsetTop + scrollContainer.scrollTop;
+                        
+                        scrollContainer.scrollTo({
+                          top: sectionOffset - 30, // 30px de padding superior
+                          behavior: 'smooth'
+                        });
+                      }
+                    }}
+                    className="px-4 py-3 text-sm rounded-full font-bold bg-green-500 text-white hover:bg-green-600 transition-colors cursor-pointer"
                   >
                     {active.ctaText}
-                  </motion.a>
+                  </motion.button>
                 </div>
                 <div className="pt-4 relative px-4">
                   <motion.div
+                    ref={scrollContainerRef}
                     layout
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -170,24 +184,43 @@ export default function ExpandableCardDemo() {
                     {authorDetails?.books && authorDetails.books.length > 0 ? (
                       <div>
                         <p className="mb-4">{typeof active.content === "function" ? active.content() : active.content}</p>
-                        <div className="mt-4">
-                          <h4 className="font-semibold mb-2">Libros de este autor:</h4>
-                          <ul className="list-disc list-inside space-y-1">
+                        <div className="mt-4" data-books-section>
+                          <h4 className="font-semibold mb-3 text-lg text-neutral-800 dark:text-neutral-200">Libros de este autor:</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {authorDetails.books.map((book: Book) => (
-                              <li key={book.book_id}>
-                                <a
-                                  href={`/book/${book.book_id}`}
-                                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                                >
+                              <a
+                                key={book.book_id}
+                                href={`/book/${book.book_id}`}
+                                className="block p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:border-green-500 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-200"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <h5 className="font-medium text-neutral-900 dark:text-neutral-100 hover:text-green-600 dark:hover:text-green-400 transition-colors line-clamp-2">
                                   {book.title}
-                                </a>
-                              </li>
+                                </h5>
+                                {book.subtitle && (
+                                  <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1 line-clamp-1">
+                                    {book.subtitle}
+                                  </p>
+                                )}
+                                {book.price > 0 && (
+                                  <p className="text-sm font-semibold text-green-600 dark:text-green-400 mt-2">
+                                    ${book.price.toFixed(2)}
+                                  </p>
+                                )}
+                              </a>
                             ))}
-                          </ul>
+                          </div>
                         </div>
                       </div>
                     ) : (
-                      <p>{typeof active.content === "function" ? active.content() : active.content}</p>
+                      <div>
+                        <p className="mb-4">{typeof active.content === "function" ? active.content() : active.content}</p>
+                        <div data-books-section className="mt-4 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
+                          <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center">
+                            Este autor aún no tiene libros disponibles.
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </motion.div>
                 </div>
