@@ -78,7 +78,7 @@ export default function Home() {
                 </div>
                 <Devider title="Autores" />
 
-                <div id="autores" className="py-20">
+                <div id="autores" className="py-20 flex-column grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   
                   <ExpandableCardDemo />
                 </div>
