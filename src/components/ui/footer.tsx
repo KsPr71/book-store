@@ -2,11 +2,21 @@
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
+import { useNavigation } from "@/contexts/NavigationContext";
 
 export function FooterWithLogo() {
   const [isVisible, setIsVisible] = useState(true);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { setActiveSection } = useNavigation();
+
+  const navItems = [
+    { name: "Inicio", link: "/", section: "inicio" },
+    { name: "Libros", link: "/#libros", section: "libros" },
+    { name: "Autores", link: "/#autores", section: "autores" },
+    { name: "Resumen", link: "/#categorias", section: "categorias" },
+  ];
 
   useEffect(() => {
     let ticking = false;
@@ -48,11 +58,11 @@ export function FooterWithLogo() {
     <AnimatePresence>
       {isVisible && (
         <motion.footer
-          initial={{ y: 0, opacity: 1 }}
+          initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          transition={{ duration: 0.6, ease: "easeInOut" }}
-          className="fixed bottom-0 left-0 right-0 z-50 bg-blue-50/80 dark:bg-gray-900/80 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-800/50"
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="fixed bottom-0 left-0 right-0 z-50 bg-white/60 dark:bg-gray-900/60 backdrop-blur-lg border-t border-gray-200/30 dark:border-gray-800/30"
         >
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row justify-between items-center">
@@ -70,18 +80,18 @@ export function FooterWithLogo() {
 
               {/* Links */}
               <div className="flex space-x-6">
-                <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                  Inicio
-                </a>
-                <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                  Libros
-                </a>
-                <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                  Autores
-                </a>
-                <a href="#" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-                  Contacto
-                </a>
+                {navItems.map((item) => (
+                  <Link
+                    key={item.section}
+                    href={item.link}
+                    onClick={() => {
+                      setActiveSection(item.section as "inicio" | "libros" | "autores" | "categorias");
+                    }}
+                    className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    {item.name}
+                  </Link>
+                ))}
               </div>
 
               {/* Copyright */}
