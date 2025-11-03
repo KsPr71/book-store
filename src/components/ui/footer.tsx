@@ -79,7 +79,7 @@ export function FooterWithLogo() {
               </div>
 
               {/* Links */}
-              <div className="flex space-x-6">
+              <div className="flex space-x-6 items-center">
                 {navItems.map((item) => (
                   <Link
                     key={item.section}
@@ -92,6 +92,7 @@ export function FooterWithLogo() {
                     {item.name}
                   </Link>
                 ))}
+                
               </div>
 
               {/* Copyright */}

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { NavbarWrapper } from "@/components/navbar-wrapper";
 import { FooterWithLogo } from "@/components/ui/footer";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
             <NavigationProvider>
               <NavbarWrapper />
               {children}
+         
               <FooterWithLogo/>
             </NavigationProvider>
           </AuthProvider>

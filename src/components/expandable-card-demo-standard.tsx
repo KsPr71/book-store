@@ -90,7 +90,7 @@ export default function ExpandableCardDemo() {
             <motion.div
               layoutId={`card-${active.title}-${id}`}
               ref={ref}
-              className="w-full max-w-[500px]  h-full md:h-fit md:max-h-[90%]  flex flex-col bg-white dark:bg-neutral-900 sm:rounded-3xl overflow-visible relative pointer-events-auto"
+              className="w-full max-w-[500px] h-full md:h-[85vh] md:max-h-[95vh] flex flex-col bg-white dark:bg-neutral-900 sm:rounded-3xl overflow-hidden relative pointer-events-auto"
             >
               <motion.div layoutId={`image-${active.title}-${id}`} className="relative overflow-hidden">
                 <motion.button
@@ -138,8 +138,8 @@ export default function ExpandableCardDemo() {
                 )}
               </motion.div>
 
-              <div>
-                <div className="flex justify-between items-start p-4">
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className="flex justify-between items-start p-4 flex-shrink-0">
                   <div className="">
                     <motion.h3
                       layoutId={`title-${active.title}-${id}`}
@@ -182,14 +182,14 @@ export default function ExpandableCardDemo() {
                     {active.ctaText}
                   </motion.button>
                 </div>
-                <div className="pt-4 relative px-4">
+                <div className="pt-4 relative px-4 flex-1 min-h-0">
                   <motion.div
                     ref={scrollContainerRef}
                     layout
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="text-neutral-600 text-xs md:text-sm lg:text-base h-40 md:h-60 lg:h-72 pb-12 flex flex-col items-start gap-4 overflow-y-auto dark:text-neutral-400 pr-2"
+                    className="text-neutral-600 text-xs md:text-sm lg:text-base h-full pb-12 flex flex-col items-start gap-4 overflow-y-auto dark:text-neutral-400 pr-2"
                   >
                     {authorDetails?.books && authorDetails.books.length > 0 ? (
                       <div>
@@ -252,13 +252,13 @@ export default function ExpandableCardDemo() {
           <p className="text-lg text-neutral-600 dark:text-neutral-400">No hay autores disponibles</p>
         </div>
       ) : (
-        <ul className="max-w-2xl mx-auto w-full gap-4">
+        <ul className="max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {authorCards.map((card) => (
             <motion.div
               layoutId={`card-${card.title}-${id}`}
               key={`card-${card.author_id}-${id}`}
               onClick={() => setActive(card)}
-              className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-white dark:hover:bg-white rounded-xl cursor-pointer"
+              className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-white dark:hover:bg-white rounded-xl cursor-pointer outline outline-2 outline-gray-300 dark:outline-gray-600 hover:outline-blue-400 hover:shadow-lg hover:shadow-blue-500/20 transition-[outline-color,box-shadow] duration-300"
             >
               <div className="flex gap-4 flex-col md:flex-row ">
                 <motion.div layoutId={`image-${card.title}-${id}`}>
