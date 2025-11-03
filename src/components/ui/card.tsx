@@ -267,7 +267,7 @@ export function ThreeDCardDemo() {
   }
 
   return (
-    <div className="py-5 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative ">
+    <div className="py-5 px-4 sm:px-6 lg:px-8 w-full relative ">
       {/* Campo de búsqueda */}
       {searchFilter && (
         <div className="mb-6 max-w-md mx-auto">

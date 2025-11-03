@@ -10,7 +10,9 @@ import ExpandableCardDemo from "@/components/expandable-card-demo-standard";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { Devider } from "@/components/ui/Devider";
 import { LoaderOne } from "@/components/ui/loader";
-
+import { DefaultAccordion } from "@/components/ui/CustomAccordion";
+import { LayoutTextFlip } from "@/components/ui/layout-text-flip";
+import { useCategories } from "@/hooks";
 export default function Home() {
   const { books, loading } = useBooks();
   const { activeSection } = useNavigation();
@@ -19,6 +21,12 @@ export default function Home() {
   const paddedBooks = useMemo(() => {
     return transformBooksForParallax(books, loading);
   }, [books, loading]);
+
+  const {categories} = useCategories()
+
+  const categoryNamesArray = useMemo(() => {
+    return categories?.map(cat => cat.category_name) || [];
+  }, [categories]);
 
   // Scroll a la sección cuando cambia activeSection
   useEffect(() => {
@@ -72,18 +80,25 @@ export default function Home() {
             ) : (
               <>
                 <HeroParallax products={paddedBooks} />
-                <div id="libros" className="py-20 margin-left-4">
+                <div id="libros" className="py-10  w-full max-w-none ">
+                <div className="dark:bg-black rounded-t-xl w-full max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl mx-auto flex justify-center items-center">
+                    <LayoutTextFlip
+                      text="Descubre la mejor literatura de los generos: "
+                      words={categoryNamesArray}
+                      duration={3000}
+                    />
+                  </div>
                   <Devider title="Libros" />
                   <ThreeDCardDemo />
                 </div>
                 <Devider title="Autores" />
 
-                <div id="autores" className="py-20 flex-column grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  
-                  <ExpandableCardDemo />
+
+                <div id="autores" className="bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 rounded-t-xl w-full max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl mx-auto hover:shadow-2xl hover:shadow-black-200/30">
+                  <DefaultAccordion/>
                 </div>
                 <Devider title="Resumen" />
-                <div id="categorias" className="py-20 bg-gray-100 dark:bg-black border-t border-gray-200 dark:border-gray-800 rounded-t-xl">
+                <div id="categorias" className="py-5 bg-gray-50 dark:bg-black border-t border-gray-200 dark:border-gray-800 rounded-t-xl w-full max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl mx-auto">
                   
                   <BooksExample />
                 </div>
