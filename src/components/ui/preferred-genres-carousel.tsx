@@ -87,7 +87,22 @@ export default function PreferredGenresCarousel() {
   };
 
   if (loading || loadingProfile) return null;
-  if (!preferredCategoryIds || preferredCategoryIds.length === 0) return null;
+
+  // Si no hay categorías preferidas, mostramos solo el Snackbar (si está abierto)
+  if (!preferredCategoryIds || preferredCategoryIds.length === 0) {
+    return (
+      <>
+        <Snackbar
+          message={snackbarMessage}
+          type="info"
+          isOpen={snackbarOpen}
+          onClose={() => setSnackbarOpen(false)}
+          duration={6000}
+        />
+      </>
+    );
+  }
+
   if (filteredBooks.length === 0) return null;
 
   // Calcular ancho del track y padding inicial para centrar
@@ -153,8 +168,7 @@ export default function PreferredGenresCarousel() {
           aria-roledescription="carousel"
         >
           {/* Gradientes para el desvanecido */}
-          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-white via-white to-transparent dark:from-neutral-950 dark:via-neutral-950 z-10"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white via-white to-transparent dark:from-neutral-950 dark:via-neutral-950 z-10"></div>
+          
           <div 
             className={`scroll-track-${animId} items-center`} 
             style={{ 
