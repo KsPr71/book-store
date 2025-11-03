@@ -6,6 +6,7 @@ import { useBooks } from "@/hooks";
 import { useMemo, useEffect } from "react";
 import { transformBooksForParallax } from "@/lib/parallax-books";
 import { ThreeDCardDemo } from "@/components/ui/card";
+import PreferredGenresCarousel from '@/components/ui/preferred-genres-carousel';
 import ExpandableCardDemo from "@/components/expandable-card-demo-standard";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { Devider } from "@/components/ui/Devider";
@@ -45,6 +46,7 @@ export default function Home() {
         return (
           <div id="libros" className="min-h-screen py-20">
             <h1 className="text-4xl font-bold mb-8 text-center">Libros</h1>
+            <PreferredGenresCarousel />
             <ThreeDCardDemo />
           </div>
         );
@@ -88,6 +90,7 @@ export default function Home() {
                       duration={3000}
                     />
                   </div>
+                  <PreferredGenresCarousel />
                   <Devider title="Libros" />
                   <ThreeDCardDemo />
                 </div>
