@@ -109,7 +109,7 @@ export const HeroParallax = ({
 
 export const Header = () => {
   return (
-    <div className="max-w-7xl relative mx-auto py-10 md:py-20 px-4 w-full  left-0 top-0">
+    <div className="max-w-7xl relative mx-auto py-5 md:py-10 px-4 w-full  left-0 top-0">
       <Image alt="logo" src={'/logo2.svg'} width={350} height={450}/>
       {/* <h1 className="text-2xl md:text-7xl font-bold dark:text-white">
         Click & Read
