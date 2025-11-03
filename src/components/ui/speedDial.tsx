@@ -5,7 +5,7 @@ import Box from '@mui/material/Box';
 import SpeedDial from '@mui/material/SpeedDial';
 import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
-import { Search, User, Calendar, ArrowUpAZ, Users } from 'lucide-react';
+import { Search, User, Calendar, ArrowUpAZ, Users, X } from 'lucide-react';
 
 export type SearchFilterType = 'name' | 'author' | 'year' | null;
 export type SortType = 'alphabetical' | 'author' | null;
@@ -30,24 +30,66 @@ export default function BookSpeedDial({
       icon: <Search />, 
       name: 'Buscar por Nombre', 
       type: 'name' as SearchFilterType,
-      onClick: () => onSearchBy?.('name'),
+      onClick: () => {
+        onSearchBy?.('name');
+        // desplazar y enfocar el input de búsqueda
+        const el = document.getElementById('book-search-input');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // focus después de un pequeño delay para esperar al scroll
+          setTimeout(() => (el as HTMLElement).focus(), 350);
+        }
+      },
       active: currentSearchFilter === 'name'
     },
     { 
       icon: <User />, 
       name: 'Buscar por Autor', 
       type: 'author' as SearchFilterType,
-      onClick: () => onSearchBy?.('author'),
+      onClick: () => {
+        onSearchBy?.('author');
+        const el = document.getElementById('book-search-input');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => (el as HTMLElement).focus(), 350);
+        }
+      },
       active: currentSearchFilter === 'author'
     },
     { 
       icon: <Calendar />, 
       name: 'Buscar por Año', 
       type: 'year' as SearchFilterType,
-      onClick: () => onSearchBy?.('year'),
+      onClick: () => {
+        onSearchBy?.('year');
+        const el = document.getElementById('book-search-input');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => (el as HTMLElement).focus(), 350);
+        }
+      },
       active: currentSearchFilter === 'year'
     },
   ];
+
+  const clearAction = {
+    icon: <X />,
+    name: 'Limpiar filtros',
+    type: null as SearchFilterType | null,
+    onClick: () => {
+      // clear search filter and sort
+      onSearchBy?.(null);
+      onSortBy?.(null);
+      // opcional: desplazar al top de la sección de libros
+      const container = document.querySelector('[data-books-container]');
+      if (container) {
+        (container as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    },
+    active: !currentSearchFilter && !currentSort,
+  };
 
   const sortActions = [
     { 
@@ -66,7 +108,7 @@ export default function BookSpeedDial({
     },
   ];
 
-  const allActions = [...searchActions, ...sortActions];
+  const allActions = [...searchActions, ...sortActions, clearAction];
 
   return (
     <Box sx={{ position: 'fixed', bottom: 16, right: 16, zIndex: 1000 }}>

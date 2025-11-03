@@ -164,6 +164,54 @@ export function ThreeDCardDemo() {
   const [searchFilter, setSearchFilter] = React.useState<'name' | 'author' | 'year' | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [sortType, setSortType] = React.useState<'alphabetical' | 'author' | null>(null);
+  const observerRef = React.useRef<MutationObserver | null>(null);
+
+  // Efecto para asegurar focus cuando searchFilter cambia a name/author
+  React.useEffect(() => {
+    if (!searchFilter) return;
+
+    const focusIfAvailable = () => {
+      const el = document.getElementById('book-search-input') as HTMLInputElement | null;
+      if (el) {
+        // desplazar al elemento y focus
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+        return true;
+      }
+      return false;
+    };
+
+    // Intentar inmediatamente
+    if (focusIfAvailable()) return;
+
+    // Si no está todavía en el DOM, observar cambios ligeros en el body
+    const observer = new MutationObserver(() => {
+      if (focusIfAvailable()) {
+        if (observerRef.current) {
+          observerRef.current.disconnect();
+          observerRef.current = null;
+        }
+      }
+    });
+    observerRef.current = observer;
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Timeout de fallback para desconectar
+    const timeout = setTimeout(() => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+    }, 2000);
+
+    return () => {
+      clearTimeout(timeout);
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+    };
+  }, [searchFilter]);
 
   // Filtrar solo libros disponibles o en draft
   const availableBooks = React.useMemo(() => {
@@ -249,6 +297,7 @@ export function ThreeDCardDemo() {
       {searchFilter && (
         <div className="mb-6 max-w-md mx-auto">
           <input
+            id="book-search-input"
             type="text"
             placeholder={
               searchFilter === 'name'
@@ -263,6 +312,8 @@ export function ThreeDCardDemo() {
           />
         </div>
       )}
+
+      
 
       {/* SpeedDial */}
       <BookSpeedDial
@@ -287,6 +338,7 @@ export function ThreeDCardDemo() {
         </div>
       ) : (
         <div 
+          data-books-container
           className="grid gap-4 sm:gap-5 lg:gap-6 w-full"
           style={{
             gridTemplateColumns: 'repeat(auto-fill, 22rem)'

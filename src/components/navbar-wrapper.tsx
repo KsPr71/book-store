@@ -17,6 +17,7 @@ export function NavbarWrapper() {
   const { setActiveSection } = useNavigation();
   const { user, logout } = useAuth();
   const isAdminUser = user ? checkIsAdmin(user.email) : false;
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const navItems = [
     { name: "Inicio", link: "/", section: "inicio" },
@@ -71,6 +72,40 @@ export function NavbarWrapper() {
               Admin
             </Link>
           )}
+          {user && (
+            <div className="relative ml-4">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors rounded-md"
+              >
+                {`Usuario: ${user.user_metadata?.first_name ?? ''}${user.user_metadata?.last_name ? ' ' + user.user_metadata.last_name : ''}`}
+              </button>
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-40 rounded-md bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 shadow-lg z-50">
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      // Ir a perfil (ruta de ejemplo)
+                      window.location.href = '/profile';
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-800"
+                  >
+                    Perfil
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setUserMenuOpen(false);
+                      await logout();
+                      window.location.href = '/';
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-800"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <button
             onClick={() => setIsAboutOpen(true)}
             className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors ml-4"
@@ -116,6 +151,11 @@ export function NavbarWrapper() {
           isOpen={isMobileMenuOpen} 
           onClose={() => setIsMobileMenuOpen(false)}
         >
+          {user && (
+            <div className="px-4 py-2 border-b border-gray-100 dark:border-neutral-800 mb-2">
+              <p className="text-sm text-neutral-700 dark:text-neutral-300">{`Usuario: ${user.user_metadata?.first_name ?? ''}${user.user_metadata?.last_name ? ' ' + user.user_metadata.last_name : ''}`}</p>
+            </div>
+          )}
           {navItems.map((item) => (
             <Link
               key={item.section}
@@ -139,24 +179,42 @@ export function NavbarWrapper() {
             </Link>
           )}
           {user ? (
-            <button
-              onClick={async () => {
-                await logout();
-                setIsMobileMenuOpen(false);
-                window.location.href = '/';
-              }}
-              className="block w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
-            >
-              Cerrar sesión
-            </button>
+            <>
+              <Link
+                href="/profile"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+              >
+                Perfil
+              </Link>
+              <button
+                onClick={async () => {
+                  await logout();
+                  setIsMobileMenuOpen(false);
+                  window.location.href = '/';
+                }}
+                className="block w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+              >
+                Cerrar sesión
+              </button>
+            </>
           ) : (
-            <Link
-              href="/login"
-              className="block px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Iniciar sesión
-            </Link>
+            <div className="flex flex-col w-full">
+              <Link
+                href="/login"
+                className="block px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/signup"
+                className="mt-2 block px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Crear cuenta
+              </Link>
+            </div>
           )}
           <button
             onClick={() => {
