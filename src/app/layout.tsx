@@ -5,6 +5,7 @@ import { BookStoreProvider } from "@/contexts/BookStoreContext";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NavbarWrapper } from "@/components/navbar-wrapper";
+import { FooterWithLogo } from "@/components/ui/footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
             <NavigationProvider>
               <NavbarWrapper />
               {children}
+              <FooterWithLogo/>
             </NavigationProvider>
           </AuthProvider>
         </BookStoreProvider>

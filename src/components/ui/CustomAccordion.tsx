@@ -17,11 +17,7 @@ export function DefaultAccordion() {
         <Accordion 
             open={open === 1} 
             className="text-center w-full"
-            placeholder={undefined}
-            onResize={undefined}
-            onResizeCapture={undefined}
-            onPointerEnterCapture={undefined}
-            onPointerLeaveCapture={undefined}           
+           
             >
           <AccordionHeader 
             onClick={() => handleOpen(1)}
