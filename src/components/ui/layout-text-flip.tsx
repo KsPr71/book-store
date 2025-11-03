@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 
@@ -13,27 +13,33 @@ export const LayoutTextFlip = ({
   duration?: number;
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  
+  // Estabilizar valores primitivos para las dependencias
+  const stableDuration = useMemo(() => duration ?? 3000, [duration]);
+  const stableWordsLength = useMemo(() => words.length, [words.length]);
 
   useEffect(() => {
+    if (stableWordsLength === 0) return;
+
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % words.length);
-    }, duration);
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % stableWordsLength);
+    }, stableDuration);
 
     return () => clearInterval(interval);
-  },);
+  }, [stableDuration, stableWordsLength]);
 
   return (
-    <>
+    <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:gap-0">
       <motion.span
         layoutId="subtext"
-        className="text-2xl font-bold tracking-tight drop-shadow-lg md:text-2xl"
+        className="text-lg font-bold tracking-tight drop-shadow-lg sm:text-xl md:text-2xl"
       >
         {text}
       </motion.span>
 
       <motion.span
         layout
-        className="relative w-fit overflow-hidden rounded-md border border-transparent bg-white px-4 py-2 font-sans text-2xl font-bold tracking-tight text-black shadow-sm ring shadow-black/10 ring-black/10 drop-shadow-lg md:text-2xl dark:bg-neutral-900 dark:text-white dark:shadow-sm dark:ring-1 dark:shadow-white/10 dark:ring-white/10"
+        className="relative w-fit overflow-hidden rounded-md border border-transparent bg-gradient-to-r from-blue-500 to-purple-600 px-3 py-1.5 font-sans text-lg font-bold tracking-tight text-white shadow-sm ring shadow-black/10 ring-black/10 drop-shadow-lg sm:px-4 sm:py-2 sm:text-xl md:ml-2 md:px-4 md:py-2 md:text-2xl dark:from-blue-600 dark:to-purple-700 dark:text-white dark:shadow-sm dark:ring-1 dark:shadow-white/10 dark:ring-white/10"
       >
         <AnimatePresence mode="popLayout">
           <motion.span
@@ -53,6 +59,6 @@ export const LayoutTextFlip = ({
           </motion.span>
         </AnimatePresence>
       </motion.span>
-    </>
+    </div>
   );
 };

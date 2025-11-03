@@ -362,7 +362,7 @@ export default function ExpandableCardDemo() {
               layoutId={`card-${card.title}-${id}`}
               key={`card-${card.author_id}-${id}`}
               onClick={() => setActive(card)}
-              className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl cursor-pointer"
+              className="p-4 flex flex-col md:flex-row justify-between items-center hover:bg-white dark:hover:bg-white rounded-xl cursor-pointer"
             >
               <div className="flex gap-4 flex-col md:flex-row ">
                 <motion.div layoutId={`image-${card.title}-${id}`}>

@@ -20,24 +20,44 @@ export async function resendConfirmationEmail(email: string) {
     if (error) throw error;
 
     return { error: null, message: 'Email de confirmación reenviado' };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error resending confirmation email:', error);
-    return { error: error.message || 'Error al reenviar email de confirmación', message: null };
+    const errorMessage = error instanceof Error ? error.message : 'Error al reenviar email de confirmación';
+    return { error: errorMessage, message: null };
   }
 }
 
 /**
  * Obtiene todos los usuarios (requiere permisos de administrador)
  * Esta función solo funciona si tienes permisos adecuados en Supabase
+ * Nota: Para usar esto desde el cliente, necesitas configurar Supabase con service_role key
+ * o crear un endpoint del lado del servidor con Next.js API routes
  */
 export async function getAllUsers() {
   try {
+    // Verificar que el cliente tenga permisos de admin
     const { data, error } = await supabase.auth.admin.listUsers();
-    if (error) throw error;
+    
+    if (error) {
+      console.error('Error getting users:', error);
+      // Si el error es por falta de permisos, retornar mensaje específico
+      if (error.message?.includes('admin') || error.message?.includes('permission')) {
+        return { 
+          data: null, 
+          error: 'No tienes permisos de administrador para ver usuarios. Esta función requiere configuración especial de Supabase.' 
+        };
+      }
+      throw error;
+    }
+    
     return { data, error: null };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting users:', error);
-    return { data: null, error: error.message || 'No tienes permisos para ver usuarios' };
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al obtener usuarios';
+    return { 
+      data: null, 
+      error: errorMessage || 'No tienes permisos para ver usuarios o falta configuración de Supabase' 
+    };
   }
 }
 

@@ -94,11 +94,11 @@ export default function Home() {
                 <Devider title="Autores" />
 
 
-                <div id="autores" className="bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 rounded-t-xl w-full max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl mx-auto hover:shadow-2xl hover:shadow-black-200/30">
+                <div id="autores" className="bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 rounded-t-xl w-full hover:shadow-2xl hover:shadow-black-200/30">
                   <DefaultAccordion/>
                 </div>
                 <Devider title="Resumen" />
-                <div id="categorias" className="py-5 bg-gray-50 dark:bg-black border-t border-gray-200 dark:border-gray-800 rounded-t-xl w-full max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl mx-auto">
+                <div id="categorias" className="py-5 bg-gray-50 dark:bg-black border-t border-gray-200 dark:border-gray-800 rounded-t-xl w-full">
                   
                   <BooksExample />
                 </div>

@@ -51,7 +51,7 @@ function BookCard({ book }: BookCardProps) {
   return (
     <div onClick={handleCardClick} className="cursor-pointer w-full">
       <CardContainer className="inter-var w-full" containerClassName="py-0 w-full">
-        <CardBody className="bg-gray-50 relative group/card dark:hover:shadow-2xl dark:hover:shadow-blue-500/[0.1] dark:bg-black dark:border-white/[0.2] border-black/[0.1] w-full sm:w-[20rem] h-auto rounded-xl p-4 border transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/30 dark:hover:shadow-magenta-500/40 hover:border-blue-500/60 dark:hover:border-magenta-500/60 px-3 py-3">
+        <CardBody className="bg-gray-50 relative group/card dark:hover:shadow-2xl dark:hover:shadow-blue-500/[0.1] dark:bg-black dark:border-white/[0.2] border-black/[0.1] w-full h-auto rounded-xl p-4 border transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/30 dark:hover:shadow-magenta-500/40 hover:border-blue-500/60 dark:hover:border-magenta-500/60 px-3 py-3">
         {/* Imagen con overlay de descripción al hover */}
         <CardItem translateZ="100" className="w-full">
           {book.cover_image_url ? (
@@ -267,7 +267,7 @@ export function ThreeDCardDemo() {
   }
 
   return (
-    <div className="py-5 px-4 sm:px-6 lg:px-8 w-full relative ">
+    <div className="py-5 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 w-full relative">
       {/* Campo de búsqueda */}
       {searchFilter && (
         <div className="mb-6 max-w-md mx-auto">
@@ -309,7 +309,12 @@ export function ThreeDCardDemo() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto w-full">
+        <div 
+          className="grid gap-4 sm:gap-5 lg:gap-6 w-full"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fill, 22rem)'
+          }}
+        >
           {displayBooks.map((book) => (
             <BookCard key={book.book_id} book={book} />
           ))}

@@ -24,7 +24,7 @@ export function BooksExample() {
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-4 space-y-4 w-full">
       {/* Resumen compacto */}
       <div className="grid grid-cols-3 gap-2">
         <div className="p-2 border rounded bg-neutral-50 dark:bg-neutral-900">
