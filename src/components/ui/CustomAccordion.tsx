@@ -17,11 +17,21 @@ export function DefaultAccordion() {
         <Accordion 
             open={open === 1} 
             className="text-center w-full"
+            placeholder={undefined}
+            onResize={undefined}
+            onResizeCapture={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
            
             >
           <AccordionHeader 
             onClick={() => handleOpen(1)}
             className="text-center justify-center flex items-center w-full hover:text-blue-500"
+            placeholder={undefined}
+            onResize={undefined}
+            onResizeCapture={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
    
           >
             Autores en el Catalogo
