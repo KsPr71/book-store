@@ -7,7 +7,7 @@ import {
 } from "@material-tailwind/react";
 import ExpandableCardDemo from "@/components/expandable-card-demo-standard";
 export function DefaultAccordion() {
-  const [open, setOpen] = React.useState(1);
+  const [open, setOpen] = React.useState(0);
  
   const handleOpen = (value: number) => setOpen(open === value ? 0 : value);
  
