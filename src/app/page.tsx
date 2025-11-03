@@ -58,7 +58,7 @@ export default function Home() {
       case "categorias":
         return (
           <div id="categorias" className="min-h-screen py-20">
-            <h1 className="text-4xl font-bold mb-8 text-center">Categorías</h1>
+            <h1 className="text-4xl font-bold mb-8 text-center">Resumen</h1>
             <BooksExample />
           </div>
         );

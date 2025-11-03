@@ -25,10 +25,6 @@ export default function ExpandableCardDemo() {
   const [authorDetails, setAuthorDetails] = useState<AuthorWithBooks | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const descriptionRef = useRef<HTMLParagraphElement>(null);
-  const autoScrollRef = useRef<number | null>(null);
-  const isUserScrollingRef = useRef<boolean>(false);
-  const restartTimeoutRef = useRef<number | null>(null);
   const id = useId();
 
   // Transformar autores al formato que espera el componente
@@ -72,109 +68,6 @@ export default function ExpandableCardDemo() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [active]);
 
-  // Auto-scroll animado para la descripción
-  useEffect(() => {
-    if (!scrollContainerRef.current || !active || typeof active !== "object") {
-      // Limpiar el auto-scroll si el modal está cerrado
-      if (autoScrollRef.current) {
-        cancelAnimationFrame(autoScrollRef.current);
-        autoScrollRef.current = null;
-      }
-      return;
-    }
-
-    const container = scrollContainerRef.current;
-    const descriptionElement = descriptionRef.current;
-    
-    if (!descriptionElement) return;
-
-    // Detectar cuando el usuario hace scroll manual
-    const handleUserScroll = () => {
-      isUserScrollingRef.current = true;
-    };
-
-    container.addEventListener('wheel', handleUserScroll, { passive: true });
-    container.addEventListener('touchstart', handleUserScroll, { passive: true });
-    container.addEventListener('touchmove', handleUserScroll, { passive: true });
-
-    // Variables para manejar el auto-scroll
-    let startTime: number | null = null;
-    let startScroll = 0;
-
-    // Esperar a que el contenido se cargue completamente
-    const timeout = setTimeout(() => {
-      const maxScroll = container.scrollHeight - container.clientHeight;
-      
-      // Si no hay scroll necesario, no hacer nada
-      if (maxScroll <= 0) return;
-
-      const duration = Math.max(10000, maxScroll * 50); // Duración mínima de 10 segundos, ajustada según el contenido
-
-      const animate = (currentTime: number) => {
-        if (startTime === null) {
-          startTime = currentTime;
-          startScroll = container.scrollTop;
-        }
-
-        // Si el usuario está haciendo scroll manual, pausar
-        if (isUserScrollingRef.current) {
-          startTime = currentTime; // Reiniciar el tiempo
-          startScroll = container.scrollTop; // Actualizar la posición inicial
-          isUserScrollingRef.current = false;
-          autoScrollRef.current = requestAnimationFrame(animate);
-          return;
-        }
-
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        // Función de easing suave (ease-in-out)
-        const easeInOut = (t: number) => t < 0.5 
-          ? 2 * t * t 
-          : -1 + (4 - 2 * t) * t;
-
-        const easedProgress = easeInOut(progress);
-        const newScroll = startScroll + (maxScroll - startScroll) * easedProgress;
-
-        container.scrollTop = newScroll;
-
-        if (progress < 1) {
-          autoScrollRef.current = requestAnimationFrame(animate);
-        } else {
-          // Cuando llega al final, esperar 2 segundos y volver al inicio
-          restartTimeoutRef.current = window.setTimeout(() => {
-            container.scrollTo({
-              top: 0,
-              behavior: 'smooth'
-            });
-            // Reiniciar después de que termine la animación de vuelta
-            restartTimeoutRef.current = window.setTimeout(() => {
-              startTime = null;
-              autoScrollRef.current = requestAnimationFrame(animate);
-            }, 500);
-          }, 2000);
-        }
-      };
-
-      // Iniciar la animación
-      autoScrollRef.current = requestAnimationFrame(animate);
-    }, 300);
-
-    return () => {
-      clearTimeout(timeout);
-      if (restartTimeoutRef.current !== null) {
-        clearTimeout(restartTimeoutRef.current);
-        restartTimeoutRef.current = null;
-      }
-      if (autoScrollRef.current) {
-        cancelAnimationFrame(autoScrollRef.current);
-        autoScrollRef.current = null;
-      }
-      container.removeEventListener('wheel', handleUserScroll);
-      container.removeEventListener('touchstart', handleUserScroll);
-      container.removeEventListener('touchmove', handleUserScroll);
-    };
-  }, [active, authorDetails]);
 
   useOutsideClick(ref, () => setActive(null));
 
@@ -186,39 +79,48 @@ export default function ExpandableCardDemo() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 h-full w-full z-10"
+            className="fixed inset-0 bg-black/20 h-full w-full z-10 pointer-events-auto"
+            onClick={() => setActive(null)}
           />
         )}
       </AnimatePresence>
       <AnimatePresence>
         {active && typeof active === "object" ? (
-          <div className="fixed inset-0  grid place-items-center z-[100]">
-            <motion.button
-              key={`button-${active.title}-${id}`}
-              layout
-              initial={{
-                opacity: 0,
-              }}
-              animate={{
-                opacity: 1,
-              }}
-              exit={{
-                opacity: 0,
-                transition: {
-                  duration: 0.05,
-                },
-              }}
-              className="flex absolute top-2 right-2 lg:hidden items-center justify-center bg-white rounded-full h-6 w-6"
-              onClick={() => setActive(null)}
-            >
-              <CloseIcon />
-            </motion.button>
+          <div className="fixed inset-0 grid place-items-center z-[100] pointer-events-none">
             <motion.div
               layoutId={`card-${active.title}-${id}`}
               ref={ref}
-              className="w-full max-w-[500px]  h-full md:h-fit md:max-h-[90%]  flex flex-col bg-white dark:bg-neutral-900 sm:rounded-3xl overflow-hidden"
+              className="w-full max-w-[500px]  h-full md:h-fit md:max-h-[90%]  flex flex-col bg-white dark:bg-neutral-900 sm:rounded-3xl overflow-visible relative pointer-events-auto"
             >
-              <motion.div layoutId={`image-${active.title}-${id}`}>
+              <motion.div layoutId={`image-${active.title}-${id}`} className="relative overflow-hidden">
+                <motion.button
+                  key={`close-button-${active.title}-${id}`}
+                  initial={{
+                    opacity: 0,
+                    scale: 0.8,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    scale: 0.8,
+                    transition: {
+                      duration: 0.05,
+                    },
+                  }}
+                  className="flex absolute top-4 right-4 z-[200] items-center justify-center bg-red-500 dark:bg-red-600 rounded-full h-10 w-10 shadow-xl hover:bg-red-600 dark:hover:bg-red-700 hover:scale-110 transition-all duration-200 border-2 border-white dark:border-neutral-800 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setActive(null);
+                  }}
+                  aria-label="Cerrar modal"
+                  type="button"
+                >
+                  <CloseIcon />
+                </motion.button>
                 {active.src ? (
                   <div className="relative w-full h-80 lg:h-80">
                     <Image
@@ -287,14 +189,11 @@ export default function ExpandableCardDemo() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="text-neutral-600 text-xs md:text-sm lg:text-base h-40 md:h-60 lg:h-72 pb-10 flex flex-col items-start gap-4 overflow-auto dark:text-neutral-400 [mask:linear-gradient(to_bottom,white,white,transparent)] [scrollbar-width:none] [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch]"
+                    className="text-neutral-600 text-xs md:text-sm lg:text-base h-40 md:h-60 lg:h-72 pb-12 flex flex-col items-start gap-4 overflow-y-auto dark:text-neutral-400 pr-2"
                   >
                     {authorDetails?.books && authorDetails.books.length > 0 ? (
                       <div>
-                        <p 
-                          ref={descriptionRef}
-                          className="mb-4 leading-relaxed"
-                        >
+                        <p className="mb-4 leading-relaxed">
                           {typeof active.content === "function" ? active.content() : active.content}
                         </p>
                         <div className="mt-4" data-books-section>
@@ -327,10 +226,7 @@ export default function ExpandableCardDemo() {
                       </div>
                     ) : (
                       <div>
-                        <p 
-                          ref={descriptionRef}
-                          className="mb-4 leading-relaxed"
-                        >
+                        <p className="mb-4 leading-relaxed">
                           {typeof active.content === "function" ? active.content() : active.content}
                         </p>
                         <div data-books-section className="mt-4 p-4 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
@@ -435,7 +331,7 @@ export const CloseIcon = () => {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-4 w-4 text-black"
+      className="h-5 w-5 text-white"
     >
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <path d="M18 6l-12 12" />

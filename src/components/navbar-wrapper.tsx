@@ -19,7 +19,7 @@ export function NavbarWrapper() {
     { name: "Inicio", link: "/", section: "inicio" },
     { name: "Libros disponibles", link: "/#libros", section: "libros" },
     { name: "Autores", link: "/#autores", section: "autores" },
-    { name: "Categorías", link: "/#categorias", section: "categorias" },
+    { name: "Resumen", link: "/#categorias", section: "categorias" },
   ];
 
   return (
