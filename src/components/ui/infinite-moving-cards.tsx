@@ -79,21 +79,21 @@ export const InfiniteMovingCards = ({
     <div
       ref={containerRef}
       className={cn(
-        "scroller relative z-20 max-w-7xl overflow-hidden [mask-image:linear-gradient(to_right,transparent,white_20%,white_80%,transparent)]",
+        "scroller relative z-20 max-w-7xl mx-auto px-4 overflow-hidden flex justify-center items-center [mask-image:linear-gradient(to_right,transparent,white_20%,white_80%,transparent)]",
         className,
       )}
     >
       <ul
         ref={scrollerRef}
         className={cn(
-          "flex w-max min-w-full shrink-0 flex-nowrap gap-4 py-4",
+          "flex w-max shrink-0 flex-nowrap gap-3 sm:gap-4 md:gap-6 py-4",
           start && "animate-scroll",
           pauseOnHover && "hover:[animation-play-state:paused]",
         )}
       >
         {items.map((item) => (
           <li
-            className="relative w-[350px] max-w-full shrink-0 rounded-2xl border border-b-0 border-zinc-200 bg-[linear-gradient(180deg,#fafafa,#f5f5f5)] px-8 py-6 md:w-[450px] dark:border-zinc-700 dark:bg-[linear-gradient(180deg,#27272a,#18181b)]"
+            className="relative w-[220px] sm:w-[280px] md:w-[350px] lg:w-[420px] xl:w-[480px] max-w-full shrink-0 rounded-2xl border border-b-0 border-zinc-200 bg-[linear-gradient(180deg,#fafafa,#f5f5f5)] px-6 sm:px-8 py-5 sm:py-6 dark:border-zinc-700 dark:bg-[linear-gradient(180deg,#27272a,#18181b)]"
             key={item.name}
           >
             <blockquote>
@@ -114,7 +114,7 @@ export const InfiniteMovingCards = ({
                       alt={item.name}
                       fill
                       className="object-cover"
-                      sizes="48px"
+                      sizes="(min-width:1280px) 48px, (min-width:768px) 48px, 48px"
                     />
                   </div>
                 ) : (
