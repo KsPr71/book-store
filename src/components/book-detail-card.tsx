@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import type { BookWithRelations } from '@/types/database';
+import { createWhatsAppUrl } from '@/lib/utils/whatsapp';
 
 interface BookDetailCardProps {
   book: BookWithRelations;
@@ -12,11 +13,12 @@ export function BookDetailCard({ book }: BookDetailCardProps) {
   // Obtener el autor principal
   const mainAuthor = book.authors?.find(author => author.role === 'main_author') || book.authors?.[0];
   
-  // Crear mensaje de WhatsApp
-  const whatsappMessage = encodeURIComponent(
-    `Hola, me interesa solicitar el libro "${book.title}"${mainAuthor ? ` de ${mainAuthor.full_name}` : ''}.`
-  );
-  const whatsappUrl = `https://wa.me/?text=${whatsappMessage}`;
+  // Crear URL y manejador de WhatsApp
+  const { url: whatsappUrl, onClick: handleWhatsAppClick } = createWhatsAppUrl({
+    title: book.title,
+    author: mainAuthor?.full_name,
+    price: book.price
+  });
 
   // Formatear fecha de publicación
   const formatDate = (dateString?: string | null) => {
@@ -183,6 +185,7 @@ export function BookDetailCard({ book }: BookDetailCardProps) {
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={handleWhatsAppClick}
                     className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white font-medium transition-colors duration-200"
                   >
                     <svg

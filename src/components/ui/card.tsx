@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card";
 import { useBooks } from "@/hooks";
 import BookSpeedDial from "@/components/ui/speedDial";
+import { createWhatsAppUrl } from "@/lib/utils/whatsapp";
 
 import type { BookWithRelations } from '@/types/database';
 
@@ -26,23 +27,12 @@ function BookCard({ book }: BookCardProps) {
     console.log(`⚠️ Libro "${book.title}" no tiene autores asociados. Asegúrate de crear registros en la tabla book_authors.`);
   }
   
-  // Número de WhatsApp del admin (cambia este número por el número real del admin)
-  // Formato: código de país + número (ejemplo: 521234567890 para México: +52 12 3456 7890)
-  const ADMIN_WHATSAPP_NUMBER = '52708602'; // TODO: Reemplazar con el número real del admin
-  
-  // Crear mensaje de WhatsApp dirigido al admin
-  const whatsappMessage = encodeURIComponent(
-    `¡Hola! 👋\n\nMe interesa solicitar el siguiente libro:\n\n📚 *${book.title}*${mainAuthor ? `\n👤 Autor: ${mainAuthor.full_name}` : ''}${book.price ? `\n💰 Precio: $${book.price.toFixed(2)}` : ''}\n\n¿Podrías ayudarme con más información?`
-  );
-  // URL de WhatsApp con el número del admin y mensaje prellenado
-  const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${whatsappMessage}`;
-  
-  const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.stopPropagation(); // Prevenir que el click se propague a la card
-    e.preventDefault(); // Prevenir el comportamiento por defecto del enlace
-    // Abrir WhatsApp en una nueva ventana
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-  };
+  // Crear URL y manejador de WhatsApp
+  const { url: whatsappUrl, onClick: handleWhatsAppClick } = createWhatsAppUrl({
+    title: book.title,
+    author: mainAuthor?.full_name,
+    price: book.price
+  });
 
   const handleCardClick = () => {
     router.push(`/book/${book.book_id}`);
