@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { checkIsAdmin } from "@/lib/supabase/admin";
 import { Navbar, NavBody, MobileNav, MobileNavHeader, MobileNavMenu, MobileNavToggle } from "@/components/ui/resizable-navbar";
+import { useOutsideClick } from "@/hooks/use-outside-click";
 import dynamic from "next/dynamic";
 const AboutModal = dynamic(() => import("@/components/ui/about-modal"), { ssr: false });
 
@@ -18,6 +19,12 @@ export function NavbarWrapper() {
   const { user, logout } = useAuth();
   const isAdminUser = user ? checkIsAdmin(user.email) : false;
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar el menú del usuario al hacer click fuera
+  useOutsideClick(userMenuRef, () => {
+    setUserMenuOpen(false);
+  });
 
   const navItems = [
     { name: "Inicio", link: "/", section: "inicio" },
@@ -73,10 +80,10 @@ export function NavbarWrapper() {
             </Link>
           )}
           {user && (
-            <div className="relative ml-4">
+            <div className="relative ml-4" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors rounded-md"
+                className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors rounded-md whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]"
               >
                 {`Usuario: ${user.user_metadata?.first_name ?? ''}${user.user_metadata?.last_name ? ' ' + user.user_metadata.last_name : ''}`}
               </button>
@@ -88,7 +95,7 @@ export function NavbarWrapper() {
                       // Ir a perfil (ruta de ejemplo)
                       window.location.href = '/profile';
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-800"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-t-md"
                   >
                     Perfil
                   </button>
@@ -98,7 +105,7 @@ export function NavbarWrapper() {
                       await logout();
                       window.location.href = '/';
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-800"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-b-md border-t border-gray-200 dark:border-neutral-800"
                   >
                     Cerrar sesión
                   </button>
@@ -112,17 +119,6 @@ export function NavbarWrapper() {
           >
             Acerca
           </button>
-          {user && (
-            <button
-              onClick={async () => {
-                await logout();
-                window.location.href = '/';
-              }}
-              className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors ml-4"
-            >
-              Cerrar sesión
-            </button>
-          )}
           {!user && (
             <Link
               href="/login"

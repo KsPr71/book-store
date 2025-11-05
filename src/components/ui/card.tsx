@@ -338,7 +338,7 @@ export function ThreeDCardDemo() {
       />
 
       {/* FAB para configuración de tamaño */}
-      <div className="fixed bottom-20 left-6 z-50">
+      <div className="fixed bottom-4 right-20 z-50">
         {/* FAB Button */}
         <motion.button
           onClick={() => setIsSettingsOpen(!isSettingsOpen)}
@@ -378,7 +378,7 @@ export function ThreeDCardDemo() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="absolute bottom-16 left-0 bg-white dark:bg-neutral-900 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 p-5 min-w-[280px] z-50"
+                className="absolute bottom-16 right-0 bg-white dark:bg-neutral-900 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 p-5 min-w-[280px] z-50"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex flex-col gap-4">

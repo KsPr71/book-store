@@ -109,13 +109,15 @@ export const HeroParallax = ({
 
 export const Header = () => {
   return (
-    <div className="max-w-7xl relative mx-auto py-5 md:py-10 px-4 w-full  left-0 top-0">
-      <Image alt="logo" src={'/logo2.svg'} width={350} height={450}/>
+    <div className="max-w-7xl relative mx-auto py-2 md:py-4 px-4 w-full left-0 top-0">
+      <div className="mt-8 md:mt-12 flex justify-center">
+        <Image alt="logo" src={'/logo2.svg'} width={350} height={450}/>
+      </div>
       {/* <h1 className="text-2xl md:text-7xl font-bold dark:text-white">
         Click & Read
      
       <h1 className="text-3x1 md:text-5xl font-italic text-gray-800 dark:text-white"> Aeterna Libri</h1>*/}
-      <p className="max-w-2xl text-base md:text-xl mt-8 dark:text-neutral-200 text-justify">
+      <p className="max-w-2xl text-base md:text-xl mt-6 dark:text-neutral-200 text-justify mx-auto">
       Miles de historias te esperan entre nuestros estantes virtuales. Sumérgete en un universo literario donde donde solo un click te separa de una puerta a un mundo nuevo. Ya sea que busques reencontrarte con ese sentimiento de no poder soltar un libro, descubrir una joya oculta de un autor emergente o aventurarte en un género que nunca antes habías explorado, este es tu punto de partida.
       </p> 
     </div>
