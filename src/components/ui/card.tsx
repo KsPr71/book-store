@@ -394,7 +394,7 @@ export function ThreeDCardDemo() {
                     </label>
                     <input
                       type="range"
-                      min="16"
+                      min="10"
                       max="28"
                       step="0.5"
                       value={cardSize}
