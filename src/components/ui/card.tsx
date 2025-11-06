@@ -401,7 +401,7 @@ export function ThreeDCardDemo() {
                       onChange={(e) => setCardSize(parseFloat(e.target.value))}
                       className="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-600 transition-colors"
                       style={{
-                        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((cardSize - 16) / (28 - 16)) * 100}%, #e5e7eb ${((cardSize - 16) / (28 - 16)) * 100}%, #e5e7eb 100%)`
+                        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((cardSize - 10) / (28 - 10)) * 100}%, #e5e7eb ${((cardSize - 10) / (28 - 10)) * 100}%, #e5e7eb 100%)`
                       }}
                     />
                     <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 min-w-[3.5rem] text-right">
