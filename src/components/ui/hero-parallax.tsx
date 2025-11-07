@@ -111,7 +111,13 @@ export const Header = () => {
   return (
     <div className="max-w-7xl relative mx-auto py-2 md:py-4 px-4 w-full left-0 top-0">
       <div className="mt-8 md:mt-12 flex justify-center">
-        <Image alt="logo" src={'/logo2.svg'} width={350} height={450}/>
+        <Image 
+          alt="logo" 
+          src={'/logo2.svg'} 
+          width={350} 
+          height={450}
+          className="text-gray-900 dark:text-white dark:invert"
+        />
       </div>
       {/* <h1 className="text-2xl md:text-7xl font-bold dark:text-white">
         Click & Read

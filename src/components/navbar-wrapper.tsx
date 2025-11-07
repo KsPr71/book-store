@@ -8,12 +8,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { checkIsAdmin } from "@/lib/supabase/admin";
 import { Navbar, NavBody, MobileNav, MobileNavHeader, MobileNavMenu, MobileNavToggle } from "@/components/ui/resizable-navbar";
 import { useOutsideClick } from "@/hooks/use-outside-click";
+import { Settings } from "lucide-react";
 import dynamic from "next/dynamic";
 const AboutModal = dynamic(() => import("@/components/ui/about-modal"), { ssr: false });
+const SettingsModal = dynamic(() => import("@/components/ui/settings-modal").then(mod => ({ default: mod.SettingsModal })), { ssr: false });
 
 export function NavbarWrapper() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
   const { setActiveSection } = useNavigation();
   const { user, logout } = useAuth();
@@ -113,6 +116,14 @@ export function NavbarWrapper() {
               )}
             </div>
           )}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors ml-4 flex items-center gap-2"
+            aria-label="Configuración"
+          >
+            <Settings className="w-4 h-4" />
+            <span className="hidden sm:inline">Configuración</span>
+          </button>
           <button
             onClick={() => setIsAboutOpen(true)}
             className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors ml-4"
@@ -214,6 +225,16 @@ export function NavbarWrapper() {
           )}
           <button
             onClick={() => {
+              setIsSettingsOpen(true);
+              setIsMobileMenuOpen(false);
+            }}
+            className="flex items-center gap-2 w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+          >
+            <Settings className="w-4 h-4" />
+            Configuración
+          </button>
+          <button
+            onClick={() => {
               setIsAboutOpen(true);
               setIsMobileMenuOpen(false);
             }}
@@ -224,6 +245,7 @@ export function NavbarWrapper() {
         </MobileNavMenu>
       </MobileNav>
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </Navbar>
   );
 }

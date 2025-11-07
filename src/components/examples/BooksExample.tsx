@@ -55,7 +55,7 @@ export function BooksExample() {
               <Link
                 key={book.book_id}
                 href={`/book/${book.book_id}`}
-                className="flex gap-3 border rounded p-3 hover:shadow-md transition-shadow bg-white dark:bg-neutral-900"
+                className="flex gap-3 border border-neutral-200 dark:border-blue-500 rounded p-3 hover:shadow-md transition-shadow bg-white dark:bg-gradient-to-br dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900"
               >
                 {book.cover_image_url && (
                   <div className="relative h-32 w-20 shrink-0 rounded overflow-hidden">

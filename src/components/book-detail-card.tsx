@@ -39,7 +39,7 @@ export function BookDetailCard({ book }: BookDetailCardProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-800">
+    <div className="bg-white dark:bg-gradient-to-br dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-blue-500">
       <div className="w-full">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-8">
           {/* Columna 1: Imagen */}

@@ -4,8 +4,10 @@ import "./globals.css";
 import { BookStoreProvider } from "@/contexts/BookStoreContext";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CardSizeProvider } from "@/contexts/CardSizeContext";
 import { NavbarWrapper } from "@/components/navbar-wrapper";
 import { FooterWithLogo } from "@/components/ui/footer";
+import { ThemeProvider } from "@/components/ui/theme-provider";
 
 
 const geistSans = Geist({
@@ -29,20 +31,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <BookStoreProvider>
-          <AuthProvider>
-            <NavigationProvider>
-              <NavbarWrapper />
-              {children}
-         
-              <FooterWithLogo/>
-            </NavigationProvider>
-          </AuthProvider>
-        </BookStoreProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <BookStoreProvider>
+            <AuthProvider>
+              <CardSizeProvider>
+                <NavigationProvider>
+                  <NavbarWrapper />
+                  {children}
+             
+                  <FooterWithLogo/>
+                </NavigationProvider>
+              </CardSizeProvider>
+            </AuthProvider>
+          </BookStoreProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

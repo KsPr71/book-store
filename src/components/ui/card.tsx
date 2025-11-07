@@ -3,10 +3,9 @@
 import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "motion/react";
-import { Settings, X } from "lucide-react";
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card";
 import { useBooks } from "@/hooks";
+import { useCardSize } from "@/contexts/CardSizeContext";
 import BookSpeedDial from "@/components/ui/speedDial";
 import { createWhatsAppUrl } from "@/lib/utils/whatsapp";
 
@@ -43,7 +42,7 @@ function BookCard({ book }: BookCardProps) {
   return (
     <div onClick={handleCardClick} className="cursor-pointer w-full">
       <CardContainer className="inter-var w-full" containerClassName="py-0 w-full">
-        <CardBody className="bg-gray-50 relative group/card dark:hover:shadow-2xl dark:hover:shadow-blue-500/[0.1] dark:bg-black dark:border-white/[0.2] border-black/[0.1] w-full h-auto rounded-xl p-3 border transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/30 dark:hover:shadow-magenta-500/40 hover:border-blue-500/60 dark:hover:border-magenta-500/60 hover:bg-gray-100 dark:hover:bg-neutral-900">
+        <CardBody className="bg-gray-50 relative group/card dark:hover:shadow-2xl dark:hover:shadow-blue-500/[0.1] dark:bg-gradient-to-br dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 dark:border-blue-500 border-black/[0.1] w-full h-auto rounded-xl p-3 border transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/30 dark:hover:shadow-blue-500/50 hover:border-blue-500/60 dark:hover:border-blue-400 hover:bg-gray-100 dark:hover:from-neutral-800 dark:hover:via-neutral-700 dark:hover:to-neutral-800">
           {/* Contenedor de imagen con elementos absolutos */}
           <CardItem translateZ="100" className="w-full relative">
             {book.cover_image_url ? (
@@ -153,22 +152,11 @@ function BookCard({ book }: BookCardProps) {
 
 export function ThreeDCardDemo() {
   const { booksWithRelations, loading } = useBooks();
+  const { cardSize } = useCardSize();
   const [searchFilter, setSearchFilter] = React.useState<'name' | 'author' | 'year' | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [sortType, setSortType] = React.useState<'alphabetical' | 'author' | null>(null);
   const observerRef = React.useRef<MutationObserver | null>(null);
-  
-  // Estado para el tamaño de las cards (en rem, base: 22rem, rango: 16-28rem)
-  const [cardSize, setCardSize] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('book-card-size');
-      return saved ? parseFloat(saved) : 22;
-    }
-    return 22;
-  });
-
-  // Estado para controlar la visibilidad del panel de configuración
-  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
   // Efecto para asegurar focus cuando searchFilter cambia a name/author
   React.useEffect(() => {
@@ -279,13 +267,6 @@ export function ThreeDCardDemo() {
 
   const displayBooks = sortedBooks;
 
-  // Guardar preferencia del usuario cuando cambie el tamaño
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('book-card-size', cardSize.toString());
-    }
-  }, [cardSize]);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -336,88 +317,6 @@ export function ThreeDCardDemo() {
         currentSearchFilter={searchFilter}
         currentSort={sortType}
       />
-
-      {/* FAB para configuración de tamaño */}
-      <div className="fixed bottom-4 right-20 z-50">
-        {/* FAB Button */}
-        <motion.button
-          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-          className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg hover:shadow-xl flex items-center justify-center text-white transition-all duration-300 hover:scale-110"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          aria-label="Configuración de tamaño"
-        >
-          <motion.div
-            animate={{ rotate: isSettingsOpen ? 90 : 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {isSettingsOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Settings className="w-6 h-6" />
-            )}
-          </motion.div>
-        </motion.button>
-
-        {/* Panel desplegable con slider */}
-        <AnimatePresence>
-          {isSettingsOpen && (
-            <>
-              {/* Overlay para cerrar al hacer click fuera */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsSettingsOpen(false)}
-                className="fixed inset-0 z-40"
-              />
-              
-              {/* Panel con slider */}
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className="absolute bottom-16 right-0 bg-white dark:bg-neutral-900 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 p-5 min-w-[280px] z-50"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-neutral-800 dark:text-white">
-                      Tamaño de Tarjetas
-                    </h3>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
-                      Ancho:
-                    </label>
-                    <input
-                      type="range"
-                      min="10"
-                      max="28"
-                      step="0.5"
-                      value={cardSize}
-                      onChange={(e) => setCardSize(parseFloat(e.target.value))}
-                      className="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-600 transition-colors"
-                      style={{
-                        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((cardSize - 10) / (28 - 10)) * 100}%, #e5e7eb ${((cardSize - 10) / (28 - 10)) * 100}%, #e5e7eb 100%)`
-                      }}
-                    />
-                    <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-400 min-w-[3.5rem] text-right">
-                      {cardSize.toFixed(1)}rem
-                    </span>
-                  </div>
-                  
-                  <div className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
-                    Ajusta el tamaño de las tarjetas de libros
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
 
       {displayBooks.length === 0 ? (
         <div className="flex items-center justify-center py-20">

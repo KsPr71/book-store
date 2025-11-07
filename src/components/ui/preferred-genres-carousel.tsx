@@ -191,7 +191,7 @@ export default function PreferredGenresCarousel() {
                   // prefetch the book page for faster navigation
                   try { router.prefetch?.(`/book/${book.book_id}`); } catch { /* ignore */ }
                 }}
-                className="w-44 flex-shrink-0 bg-white dark:bg-neutral-900 border rounded-lg p-2 shadow-sm cursor-pointer focus:ring-2 focus:ring-green-400 transition-transform duration-200 hover:translate-y-[-2px] hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(72,187,120,0.12)]"
+                className="w-44 flex-shrink-0 bg-white dark:bg-gradient-to-br dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 border border-neutral-200 dark:border-blue-500 rounded-lg p-2 shadow-sm cursor-pointer focus:ring-2 focus:ring-green-400 transition-transform duration-200 hover:translate-y-[-2px] hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(72,187,120,0.12)]"
                 style={{ scrollSnapAlign: 'start' }}
               >
                 <div className="w-full h-56 relative rounded-md overflow-hidden bg-gray-100">

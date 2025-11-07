@@ -48,7 +48,7 @@ export function AuthorDetailCard({ author }: AuthorDetailCardProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-800">
+    <div className="bg-white dark:bg-gradient-to-br dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-blue-500">
       <div className="p-6">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Foto del autor */}

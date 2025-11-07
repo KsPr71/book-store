@@ -78,6 +78,7 @@ export function FooterWithLogo() {
                       src="/logo2.svg"
                       width={80}
                       height={80}
+                      className="dark:invert"
                     />
                   </div>
                 </div>

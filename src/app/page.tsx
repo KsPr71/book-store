@@ -97,7 +97,7 @@ export default function Home() {
                 <Devider title="Autores" />
 
 
-                <div id="autores" className="bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 rounded-t-xl w-full">
+                <div id="autores" className="bg-white dark:bg-gradient-to-br dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 border-t border-gray-200 dark:border-gray-800 rounded-t-xl w-full">
                   <DefaultAccordion/>
                 </div>
                 <Devider title="Resumen" />

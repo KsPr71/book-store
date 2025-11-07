@@ -65,13 +65,13 @@ export default function AboutModal({ isOpen, onClose }: Props) {
                
 
                 
-                <div className="">
+                <div className="text-gray-900 dark:text-white">
                     <Image
                         alt="logo"
                         src={'/logo2.svg'}
                         width={200}
                         height={200}
-                        
+                        className="dark:invert"
                     />
                 </div>
                 
