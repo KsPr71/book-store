@@ -91,14 +91,14 @@ export function NavbarWrapper() {
                 {`Usuario: ${user.user_metadata?.first_name ?? ''}${user.user_metadata?.last_name ? ' ' + user.user_metadata.last_name : ''}`}
               </button>
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-40 rounded-md bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 shadow-lg z-50">
+                <div className="absolute right-0 mt-2 w-40 rounded-md bg-white dark:bg-gradient-to-br dark:from-neutral-900 dark:via-neutral-800 dark:to-neutral-900 border border-gray-200 dark:border-blue-500 shadow-lg z-50">
                   <button
                     onClick={() => {
                       setUserMenuOpen(false);
                       // Ir a perfil (ruta de ejemplo)
                       window.location.href = '/profile';
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-t-md"
+                    className="w-full text-left px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700 rounded-t-md transition-colors"
                   >
                     Perfil
                   </button>
@@ -108,7 +108,7 @@ export function NavbarWrapper() {
                       await logout();
                       window.location.href = '/';
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-b-md border-t border-gray-200 dark:border-neutral-800"
+                    className="w-full text-left px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700 rounded-b-md border-t border-gray-200 dark:border-neutral-700 transition-colors"
                   >
                     Cerrar sesión
                   </button>
