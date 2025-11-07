@@ -12,6 +12,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { PWAHead } from "@/components/pwa-head";
+import { PWAInstallButton } from "@/components/pwa-install-button";
 
 
 const geistSans = Geist({
@@ -79,6 +80,7 @@ export default function RootLayout({
         <SpeedInsights />
         <PWAHead />
         <ServiceWorkerRegister />
+        <PWAInstallButton />
       </body>
     </html>
   );
