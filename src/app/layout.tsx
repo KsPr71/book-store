@@ -9,6 +9,7 @@ import { NavbarWrapper } from "@/components/navbar-wrapper";
 import { FooterWithLogo } from "@/components/ui/footer";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 
 const geistSans = Geist({
@@ -56,6 +57,7 @@ export default function RootLayout({
           </BookStoreProvider>
         </ThemeProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

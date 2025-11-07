@@ -9,8 +9,9 @@ import { BookList } from '@/components/admin/book-list';
 import { AuthorForm } from '@/components/admin/author-form';
 import { CategoryForm } from '@/components/admin/category-form';
 import { UserList } from '@/components/admin/user-list';
+import { AnalyticsDashboard } from '@/components/admin/analytics-dashboard';
 
-type TabType = 'books' | 'list' | 'authors' | 'categories' | 'users';
+type TabType = 'books' | 'list' | 'authors' | 'categories' | 'users' | 'analytics';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -54,14 +55,14 @@ export default function AdminPage() {
             Panel de Administración
           </h1>
           <p className="text-neutral-600 dark:text-neutral-400">
-            Gestiona libros, autores, categorías y usuarios
+            Gestiona libros, autores, categorías, usuarios y visualiza analytics
           </p>
         </div>
 
         {/* Tabs */}
         <div className="border-b border-neutral-200 dark:border-neutral-700 mb-6">
           <nav className="flex space-x-8">
-            {(['books', 'list', 'authors', 'categories', 'users'] as TabType[]).map((tab) => (
+            {(['books', 'list', 'authors', 'categories', 'users', 'analytics'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -76,6 +77,7 @@ export default function AdminPage() {
                 {tab === 'authors' && 'Autores'}
                 {tab === 'categories' && 'Categorías'}
                 {tab === 'users' && 'Usuarios'}
+                {tab === 'analytics' && 'Analytics'}
               </button>
             ))}
           </nav>
@@ -88,6 +90,7 @@ export default function AdminPage() {
           {activeTab === 'authors' && <AuthorForm />}
           {activeTab === 'categories' && <CategoryForm />}
           {activeTab === 'users' && <UserList />}
+          {activeTab === 'analytics' && <AnalyticsDashboard />}
         </div>
       </div>
     </div>
