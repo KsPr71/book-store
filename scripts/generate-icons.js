@@ -36,14 +36,18 @@ async function generateIcons() {
       const svgContent = fs.readFileSync(inputSvg, 'utf8');
       const svgWithBlackFill = svgContent.replace(/fill="currentColor"/g, 'fill="#000000"');
       
+      // Calcular el tamaño del logo con padding (80% del tamaño total para dejar espacio en los laterales)
+      const logoSize = Math.floor(size * 0.8);
+      const padding = Math.floor((size - logoSize) / 2);
+      
       const resizedSvg = await sharp(Buffer.from(svgWithBlackFill))
-        .resize(size, size, {
+        .resize(logoSize, logoSize, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 1 }
+          background: { r: 255, g: 255, b: 255, alpha: 0 } // Transparente para el padding
         })
         .toBuffer();
 
-      // Crear un canvas blanco y superponer el logo redimensionado
+      // Crear un canvas blanco y superponer el logo redimensionado con padding
       await sharp({
         create: {
           width: size,
@@ -55,8 +59,8 @@ async function generateIcons() {
         .composite([
           {
             input: resizedSvg,
-            top: 0,
-            left: 0,
+            top: padding,
+            left: padding,
             blend: 'over'
           }
         ])
