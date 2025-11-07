@@ -8,6 +8,7 @@ import { CardSizeProvider } from "@/contexts/CardSizeContext";
 import { NavbarWrapper } from "@/components/navbar-wrapper";
 import { FooterWithLogo } from "@/components/ui/footer";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import { Analytics } from "@vercel/analytics/react";
 
 
 const geistSans = Geist({
@@ -54,6 +55,7 @@ export default function RootLayout({
             </AuthProvider>
           </BookStoreProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
