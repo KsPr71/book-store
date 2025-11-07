@@ -127,4 +127,22 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Estilos para la splash screen de PWA */
+  html {
+    background-color: #ffffff;
+  }
+  
+  /* Asegurar que el body tenga fondo blanco al cargar */
+  body:not(.dark) {
+    background-color: #ffffff;
+  }
+  
+  /* Para iOS - mejorar la visualización de la splash screen */
+  @supports (-webkit-touch-callout: none) {
+    html {
+      background-color: #ffffff;
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
 }

@@ -38,8 +38,12 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: "/logo2.svg",
-    apple: "/logo2.svg",
+    icon: [
+      { url: "/logo2.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/logo2.svg", sizes: "180x180", type: "image/svg+xml" },
+    ],
   },
 };
 
@@ -53,9 +57,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning style={{ backgroundColor: '#ffffff' }}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}
       >
         <ThemeProvider
           attribute="class"
