@@ -15,52 +15,52 @@ export function PWAHead() {
     themeColor.content = "#3b82f6";
     document.head.appendChild(themeColor);
 
-    // Apple Touch Icons para iOS (múltiples tamaños)
+    // Apple Touch Icons para iOS (múltiples tamaños) - Usando PNG para mejor compatibilidad
     const appleIcon180 = document.createElement("link");
     appleIcon180.rel = "apple-touch-icon";
-    appleIcon180.href = "/logo2.svg";
+    appleIcon180.href = "/icons/icon-180x180.png";
     appleIcon180.sizes = "180x180";
     document.head.appendChild(appleIcon180);
 
     const appleIcon152 = document.createElement("link");
     appleIcon152.rel = "apple-touch-icon";
-    appleIcon152.href = "/logo2.svg";
+    appleIcon152.href = "/icons/icon-152x152.png";
     appleIcon152.sizes = "152x152";
     document.head.appendChild(appleIcon152);
 
     const appleIcon144 = document.createElement("link");
     appleIcon144.rel = "apple-touch-icon";
-    appleIcon144.href = "/logo2.svg";
+    appleIcon144.href = "/icons/icon-144x144.png";
     appleIcon144.sizes = "144x144";
     document.head.appendChild(appleIcon144);
 
     const appleIcon120 = document.createElement("link");
     appleIcon120.rel = "apple-touch-icon";
-    appleIcon120.href = "/logo2.svg";
+    appleIcon120.href = "/icons/icon-120x120.png";
     appleIcon120.sizes = "120x120";
     document.head.appendChild(appleIcon120);
 
     const appleIcon114 = document.createElement("link");
     appleIcon114.rel = "apple-touch-icon";
-    appleIcon114.href = "/logo2.svg";
+    appleIcon114.href = "/icons/icon-114x114.png";
     appleIcon114.sizes = "114x114";
     document.head.appendChild(appleIcon114);
 
     const appleIcon76 = document.createElement("link");
     appleIcon76.rel = "apple-touch-icon";
-    appleIcon76.href = "/logo2.svg";
+    appleIcon76.href = "/icons/icon-76x76.png";
     appleIcon76.sizes = "76x76";
     document.head.appendChild(appleIcon76);
 
     const appleIcon72 = document.createElement("link");
     appleIcon72.rel = "apple-touch-icon";
-    appleIcon72.href = "/logo2.svg";
+    appleIcon72.href = "/icons/icon-72x72.png";
     appleIcon72.sizes = "72x72";
     document.head.appendChild(appleIcon72);
 
     const appleIcon57 = document.createElement("link");
     appleIcon57.rel = "apple-touch-icon";
-    appleIcon57.href = "/logo2.svg";
+    appleIcon57.href = "/icons/icon-57x57.png";
     appleIcon57.sizes = "57x57";
     document.head.appendChild(appleIcon57);
 

@@ -58,7 +58,7 @@ export function PWAInstallButton() {
   return (
     <button
       onClick={handleInstallClick}
-      className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-colors duration-200 shadow-blue-500/50"
+      className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-colors duration-200 shadow-blue-500/50"
       aria-label="Instalar aplicación"
     >
       <svg
