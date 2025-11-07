@@ -1,0 +1,22 @@
+{
+  "name": "Book Store - Catálogo de Libros Electrónicos",
+  "short_name": "Book Store",
+  "description": "Catálogo de libros electrónicos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo2.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["books", "education", "shopping"],
+  "lang": "es",
+  "dir": "ltr"
+}
+

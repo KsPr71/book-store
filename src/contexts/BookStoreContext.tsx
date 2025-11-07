@@ -63,16 +63,40 @@ export function BookStoreProvider({ children }: { children: React.ReactNode }) {
   const refreshBooks = useCallback(async () => {
     try {
       setLoadingBooks(true);
-      const [allBooks, booksRelations, featured] = await Promise.all([
+      // Usar Promise.allSettled para que si una falla, las otras continúen
+      const results = await Promise.allSettled([
         getAllBooks(),
         getBooksWithRelations(),
         getFeaturedBooks(),
       ]);
-      setBooks(allBooks);
-      setBooksWithRelations(booksRelations);
-      setFeaturedBooks(featured);
+      
+      // Procesar resultados
+      if (results[0].status === 'fulfilled') {
+        setBooks(results[0].value);
+      } else {
+        console.error('Error loading books:', results[0].reason);
+        setBooks([]);
+      }
+      
+      if (results[1].status === 'fulfilled') {
+        setBooksWithRelations(results[1].value);
+      } else {
+        console.error('Error loading books with relations:', results[1].reason);
+        setBooksWithRelations([]);
+      }
+      
+      if (results[2].status === 'fulfilled') {
+        setFeaturedBooks(results[2].value);
+      } else {
+        console.error('Error loading featured books:', results[2].reason);
+        setFeaturedBooks([]);
+      }
     } catch (error) {
       console.error('Error loading books:', error);
+      // Asegurar que los estados se limpien en caso de error
+      setBooks([]);
+      setBooksWithRelations([]);
+      setFeaturedBooks([]);
     } finally {
       setLoadingBooks(false);
     }

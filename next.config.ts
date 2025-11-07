@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
   images: {
@@ -28,6 +29,65 @@ const nextConfig: NextConfig = {
     // Permitir imágenes no optimizadas para desarrollo
     unoptimized: false,
   },
+  // Configuración de Turbopack (vacía para permitir que next-pwa use webpack)
+  turbopack: {},
 };
 
-export default nextConfig;
+const pwaConfig = withPWA({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development', // Deshabilitar en desarrollo para evitar problemas
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/.*\.supabase\.(co|in|storage)\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'supabase-images',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 días
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    {
+      urlPattern: /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp|svg|ico)$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'images',
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 60 * 60 * 24 * 7, // 7 días
+        },
+      },
+    },
+    {
+      urlPattern: /^https?:\/\/.*\/_next\/static\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'next-static',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24 * 365, // 1 año
+        },
+      },
+    },
+    {
+      urlPattern: /^https?:\/\/.*\/api\/.*/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60 * 5, // 5 minutos
+        },
+        networkTimeoutSeconds: 10,
+      },
+    },
+  ],
+});
+
+export default pwaConfig(nextConfig);

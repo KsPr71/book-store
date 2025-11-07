@@ -54,6 +54,19 @@ function BookCard({ book }: BookCardProps) {
                   fill
                   className="object-cover transition-transform duration-300 group-hover/card:scale-105"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  loading="lazy"
+                  onError={(e) => {
+                    // Si la imagen falla, ocultarla y mostrar placeholder
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = '<div class="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center"><span class="text-gray-400 dark:text-gray-500 text-xs">Error al cargar</span></div>';
+                    }
+                  }}
+                  onLoadStart={() => {
+                    // Prevenir errores de timeout silenciosamente
+                  }}
                 />
                 
                 {/* Chip de disponible - Esquina superior izquierda */}
@@ -72,15 +85,6 @@ function BookCard({ book }: BookCardProps) {
                   </div>
                 )}
 
-                {/* Precio - Esquina inferior derecha */}
-                <div className="absolute bottom-2 right-2 z-10 opacity-70 group-hover/card:opacity-100 transition-all duration-300">
-                  <CardItem
-                    translateZ={30}
-                    className="px-2.5 py-1 rounded-lg bg-black/60 dark:bg-white/60 backdrop-blur-sm text-white dark:text-black text-xs font-bold shadow-md group-hover/card:shadow-2xl group-hover/card:scale-110 transition-all duration-300 group-hover/card:bg-green-500 dark:group-hover/card:bg-green-600 group-hover/card:text-white"
-                  >
-                    ${book.price.toFixed(2)}
-                  </CardItem>
-                </div>
 
                 {/* Categoría/Género - Esquina inferior izquierda */}
                 {firstCategory && (
@@ -107,7 +111,7 @@ function BookCard({ book }: BookCardProps) {
               translateZ="50"
               className="font-bold text-neutral-600 dark:text-white line-clamp-2 w-full"
               style={{
-                fontSize: `${Math.max(0.75, cardSize * 0.045)}rem`
+                fontSize: `${Math.max(0.9, cardSize * 0.052)}rem`
               }}
             >
               {book.title}
@@ -126,23 +130,36 @@ function BookCard({ book }: BookCardProps) {
             </div>
           )}
           
-          {/* Botón de WhatsApp */}
+          {/* Precio y Botón de WhatsApp - Compartiendo línea */}
           <div 
-            className="mt-3" 
+            className="mt-3 flex items-center justify-between gap-2" 
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onMouseUp={(e) => e.stopPropagation()}
           >
+            {/* Precio - Parte inferior izquierda */}
+            <CardItem
+              translateZ={30}
+              className="px-2.5 py-1.5 rounded-lg bg-neutral-200/80 dark:bg-neutral-700/80 backdrop-blur-sm text-neutral-700 dark:text-neutral-200 font-bold shadow-sm transition-all duration-300 group-hover/card:bg-blue-500 group-hover/card:text-white dark:group-hover/card:bg-blue-600 dark:group-hover/card:text-white"
+              style={{
+                fontSize: `${Math.max(0.7, cardSize * 0.04)}rem`
+              }}
+            >
+              ${book.price.toFixed(2)}
+            </CardItem>
+
+            {/* Botón de WhatsApp - Solo icono */}
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleWhatsAppClick}
               onMouseDown={(e) => e.stopPropagation()}
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white font-medium transition-colors duration-200 w-full cursor-pointer"
+              className="flex items-center justify-center rounded-xl bg-[#25D366] hover:bg-[#20BA5A] text-white transition-colors duration-200 cursor-pointer flex-shrink-0"
               style={{
-                padding: `${Math.max(0.375, cardSize * 0.018)}rem ${Math.max(0.75, cardSize * 0.036)}rem`,
-                fontSize: `${Math.max(0.625, cardSize * 0.036)}rem`
+                padding: `${Math.max(0.5, cardSize * 0.022)}rem ${Math.max(0.75, cardSize * 0.035)}rem`,
+                width: `${Math.max(2.75, cardSize * 0.135)}rem`,
+                height: `${Math.max(2.25, cardSize * 0.11)}rem`
               }}
             >
               <svg
@@ -150,13 +167,12 @@ function BookCard({ book }: BookCardProps) {
                 viewBox="0 0 24 24"
                 fill="currentColor"
                 style={{
-                  width: `${Math.max(0.75, cardSize * 0.045)}rem`,
-                  height: `${Math.max(0.75, cardSize * 0.045)}rem`
+                  width: `${Math.max(1.125, cardSize * 0.055)}rem`,
+                  height: `${Math.max(1.125, cardSize * 0.055)}rem`
                 }}
               >
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
               </svg>
-              Solicitar por WhatsApp
             </a>
           </div>
         </CardBody>
