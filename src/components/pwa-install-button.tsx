@@ -7,10 +7,6 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-interface WindowWithInstallPrompt extends Window {
-  __hasInstallPrompt?: boolean;
-}
-
 type InstallState = "idle" | "installing" | "installed" | "error";
 
 export function PWAInstallButton() {
@@ -47,8 +43,6 @@ export function PWAInstallButton() {
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
       setShowButton(true);
-      // Marcar en window que hay un prompt activo (para que el badge no interfiera)
-      (window as WindowWithInstallPrompt).__hasInstallPrompt = true;
     };
 
     window.addEventListener("beforeinstallprompt", handler);
@@ -66,8 +60,6 @@ export function PWAInstallButton() {
       setShowButton(false);
       setInstallState("installed");
       setDeferredPrompt(null);
-      // Limpiar la marca de instalación
-      (window as WindowWithInstallPrompt).__hasInstallPrompt = false;
     };
 
     window.addEventListener("appinstalled", handleAppInstalled);
@@ -80,42 +72,32 @@ export function PWAInstallButton() {
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
       console.error("No hay prompt de instalación disponible");
-      setInstallState("error");
       return;
     }
 
-    // Guardar una referencia local del prompt antes de usarlo
-    const prompt = deferredPrompt;
-
     try {
+      setInstallState("installing");
+      
       // Mostrar el prompt de instalación
-      await prompt.prompt();
+      await deferredPrompt.prompt();
 
       // Esperar a que el usuario responda
-      const { outcome } = await prompt.userChoice;
-
-      // Limpiar el prompt después de usarlo (importante para móviles)
-      setDeferredPrompt(null);
-      // Mantener la marca durante la instalación
-      // Se limpiará cuando se complete o falle
+      const { outcome } = await deferredPrompt.userChoice;
 
       if (outcome === "accepted") {
         console.log("✅ Usuario aceptó instalar la app");
-        setInstallState("installing");
         // El evento 'appinstalled' se disparará cuando se complete la instalación
       } else {
         console.log("❌ Usuario rechazó instalar la app");
         setInstallState("idle");
-        // Limpiar la marca si el usuario rechaza
-        (window as WindowWithInstallPrompt).__hasInstallPrompt = false;
-        // El prompt ya fue limpiado, no se puede usar de nuevo
       }
+
+      // Limpiar el prompt después de usarlo
+      setDeferredPrompt(null);
     } catch (error) {
       console.error("❌ Error al instalar la app:", error);
       setInstallState("error");
-      // Limpiar el prompt y la marca si hay error
       setDeferredPrompt(null);
-      (window as WindowWithInstallPrompt).__hasInstallPrompt = false;
     }
   };
 
