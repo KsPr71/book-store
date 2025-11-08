@@ -1,6 +1,6 @@
 {
-  "name": "Book Store - Catálogo de Libros Electrónicos",
-  "short_name": "Book Store",
+  "name": "Click & Read - Catálogo de Libros Electrónicos",
+  "short_name": "Click & Read",
   "description": "Catálogo de libros electrónicos",
   "start_url": "/",
   "display": "standalone",
