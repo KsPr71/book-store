@@ -37,7 +37,7 @@ const pwaConfig = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development', // Deshabilitar en desarrollo para evitar problemas
+  disable: process.env.NODE_ENV === 'development', // Deshabilitar en desarrollo para evitar regeneración múltiple
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/.*\.supabase\.(co|in|storage)\/.*/i,

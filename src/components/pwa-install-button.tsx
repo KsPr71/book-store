@@ -7,14 +7,30 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+type InstallState = "idle" | "installing" | "installed" | "error";
+
 export function PWAInstallButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showButton, setShowButton] = useState(false);
+  const [installState, setInstallState] = useState<InstallState>("idle");
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  // Verificar si la app está instalada
+  const checkIfInstalled = () => {
+    // Verificar múltiples formas de detectar si está instalada
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+    const isNavigatorStandalone = (window.navigator as any).standalone === true;
+    const isInWebAppiOS = window.matchMedia("(display-mode: standalone)").matches || 
+                          (window.navigator as any).standalone === true;
+    
+    return isStandalone || isNavigatorStandalone || isInWebAppiOS;
+  };
 
   useEffect(() => {
-    // Verificar si la app ya está instalada
-    const isInstalled = window.matchMedia("(display-mode: standalone)").matches;
-    if (isInstalled) {
+    // Verificar si ya está instalada
+    if (checkIfInstalled()) {
+      setIsInstalled(true);
+      setShowButton(false);
       return;
     }
 
@@ -28,55 +44,141 @@ export function PWAInstallButton() {
 
     window.addEventListener("beforeinstallprompt", handler);
 
+    // Verificar periódicamente si se instaló
+    const checkInterval = setInterval(() => {
+      if (checkIfInstalled()) {
+        setIsInstalled(true);
+        setShowButton(false);
+        clearInterval(checkInterval);
+      }
+    }, 1000);
+
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
+      clearInterval(checkInterval);
+    };
+  }, []);
+
+  // Escuchar cuando la app se instala
+  useEffect(() => {
+    const handleAppInstalled = () => {
+      console.log("✅ App instalada");
+      setIsInstalled(true);
+      setShowButton(false);
+      setInstallState("installed");
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    // Mostrar el prompt de instalación
-    deferredPrompt.prompt();
-
-    // Esperar a que el usuario responda
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === "accepted") {
-      console.log("✅ Usuario aceptó instalar la app");
-    } else {
-      console.log("❌ Usuario rechazó instalar la app");
+    if (!deferredPrompt) {
+      console.error("No hay prompt de instalación disponible");
+      setInstallState("error");
+      return;
     }
 
-    // Limpiar el prompt guardado
-    setDeferredPrompt(null);
-    setShowButton(false);
+    try {
+      setInstallState("installing");
+
+      // Mostrar el prompt de instalación
+      await deferredPrompt.prompt();
+
+      // Esperar a que el usuario responda
+      const { outcome } = await deferredPrompt.userChoice;
+
+      if (outcome === "accepted") {
+        console.log("✅ Usuario aceptó instalar la app");
+        setInstallState("installed");
+        // El evento 'appinstalled' se disparará cuando se complete la instalación
+      } else {
+        console.log("❌ Usuario rechazó instalar la app");
+        setInstallState("idle");
+        // Mantener el prompt para que pueda intentar de nuevo
+      }
+    } catch (error) {
+      console.error("❌ Error al instalar la app:", error);
+      setInstallState("error");
+      // Mantener el prompt para que pueda intentar de nuevo
+    }
   };
 
-  if (!showButton) return null;
+  // No mostrar el botón si ya está instalada
+  if (isInstalled || !showButton) return null;
+
+  const getButtonText = () => {
+    switch (installState) {
+      case "installing":
+        return "Instalando...";
+      case "installed":
+        return "Instalada";
+      case "error":
+        return "Error - Intentar de nuevo";
+      default:
+        return "Instalar App";
+    }
+  };
+
+  const getButtonClass = () => {
+    const baseClass = "fixed bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg text-white shadow-lg transition-colors duration-200";
+    
+    switch (installState) {
+      case "installing":
+        return `${baseClass} bg-yellow-600 hover:bg-yellow-700 shadow-yellow-500/50 cursor-wait`;
+      case "installed":
+        return `${baseClass} bg-green-600 hover:bg-green-700 shadow-green-500/50`;
+      case "error":
+        return `${baseClass} bg-red-600 hover:bg-red-700 shadow-red-500/50`;
+      default:
+        return `${baseClass} bg-blue-600 hover:bg-blue-700 shadow-blue-500/50`;
+    }
+  };
 
   return (
     <button
       onClick={handleInstallClick}
-      className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-colors duration-200 shadow-blue-500/50"
+      disabled={installState === "installing" || installState === "installed"}
+      className={getButtonClass()}
       aria-label="Instalar aplicación"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" y1="15" x2="12" y2="3" />
-      </svg>
-      <span className="font-medium">Instalar App</span>
+      {installState === "installing" ? (
+        <svg
+          className="animate-spin"
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+      ) : (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      )}
+      <span className="font-medium">{getButtonText()}</span>
     </button>
   );
 }
