@@ -6,6 +6,7 @@ import { ThemeSwitch } from "./theme-switch";
 import { useTheme } from "next-themes";
 import { useCardSize } from "@/contexts/CardSizeContext";
 import { NotificationSubscription } from "@/components/notification-subscription";
+import NotificationsDebug from "@/components/notifications-debug";
 
 type Props = {
   isOpen: boolean;
@@ -151,6 +152,11 @@ export function SettingsModal({ isOpen, onClose }: Props) {
                   </span>
                 </div>
                 <NotificationSubscription />
+                {process.env.NODE_ENV !== 'production' && (
+                  <div className="mt-4">
+                    <NotificationsDebug />
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
