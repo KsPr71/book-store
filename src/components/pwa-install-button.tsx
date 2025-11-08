@@ -44,18 +44,8 @@ export function PWAInstallButton() {
 
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Verificar periódicamente si se instaló
-    const checkInterval = setInterval(() => {
-      if (checkIfInstalled()) {
-        setIsInstalled(true);
-        setShowButton(false);
-        clearInterval(checkInterval);
-      }
-    }, 1000);
-
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
-      clearInterval(checkInterval);
     };
   }, []);
 
@@ -83,28 +73,33 @@ export function PWAInstallButton() {
       return;
     }
 
-    try {
-      setInstallState("installing");
+    // Guardar una referencia local del prompt antes de usarlo
+    const prompt = deferredPrompt;
 
+    try {
       // Mostrar el prompt de instalación
-      await deferredPrompt.prompt();
+      await prompt.prompt();
 
       // Esperar a que el usuario responda
-      const { outcome } = await deferredPrompt.userChoice;
+      const { outcome } = await prompt.userChoice;
+
+      // Limpiar el prompt después de usarlo (importante para móviles)
+      setDeferredPrompt(null);
 
       if (outcome === "accepted") {
         console.log("✅ Usuario aceptó instalar la app");
-        setInstallState("installed");
+        setInstallState("installing");
         // El evento 'appinstalled' se disparará cuando se complete la instalación
       } else {
         console.log("❌ Usuario rechazó instalar la app");
         setInstallState("idle");
-        // Mantener el prompt para que pueda intentar de nuevo
+        // El prompt ya fue limpiado, no se puede usar de nuevo
       }
     } catch (error) {
       console.error("❌ Error al instalar la app:", error);
       setInstallState("error");
-      // Mantener el prompt para que pueda intentar de nuevo
+      // Limpiar el prompt si hay error
+      setDeferredPrompt(null);
     }
   };
 
@@ -142,7 +137,7 @@ export function PWAInstallButton() {
   return (
     <button
       onClick={handleInstallClick}
-      disabled={installState === "installing" || installState === "installed"}
+      disabled={installState === "installed"}
       className={getButtonClass()}
       aria-label="Instalar aplicación"
     >
