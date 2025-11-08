@@ -7,6 +7,10 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+interface WindowWithInstallPrompt extends Window {
+  __hasInstallPrompt?: boolean;
+}
+
 type InstallState = "idle" | "installing" | "installed" | "error";
 
 export function PWAInstallButton() {
@@ -19,18 +23,20 @@ export function PWAInstallButton() {
   const checkIfInstalled = () => {
     // Verificar múltiples formas de detectar si está instalada
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
-    const isNavigatorStandalone = (window.navigator as any).standalone === true;
+    const isNavigatorStandalone = (window.navigator as { standalone?: boolean }).standalone === true;
     const isInWebAppiOS = window.matchMedia("(display-mode: standalone)").matches || 
-                          (window.navigator as any).standalone === true;
+                          (window.navigator as { standalone?: boolean }).standalone === true;
     
     return isStandalone || isNavigatorStandalone || isInWebAppiOS;
   };
 
   useEffect(() => {
-    // Verificar si ya está instalada
+    // Verificar si ya está instalada (usar setTimeout para evitar setState síncrono)
     if (checkIfInstalled()) {
-      setIsInstalled(true);
-      setShowButton(false);
+      setTimeout(() => {
+        setIsInstalled(true);
+        setShowButton(false);
+      }, 0);
       return;
     }
 
@@ -38,8 +44,11 @@ export function PWAInstallButton() {
       // Prevenir que el banner automático aparezca
       e.preventDefault();
       // Guardar el evento para usarlo más tarde
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const promptEvent = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(promptEvent);
       setShowButton(true);
+      // Marcar en window que hay un prompt activo (para que el badge no interfiera)
+      (window as WindowWithInstallPrompt).__hasInstallPrompt = true;
     };
 
     window.addEventListener("beforeinstallprompt", handler);
@@ -57,6 +66,8 @@ export function PWAInstallButton() {
       setShowButton(false);
       setInstallState("installed");
       setDeferredPrompt(null);
+      // Limpiar la marca de instalación
+      (window as WindowWithInstallPrompt).__hasInstallPrompt = false;
     };
 
     window.addEventListener("appinstalled", handleAppInstalled);
@@ -85,6 +96,8 @@ export function PWAInstallButton() {
 
       // Limpiar el prompt después de usarlo (importante para móviles)
       setDeferredPrompt(null);
+      // Mantener la marca durante la instalación
+      // Se limpiará cuando se complete o falle
 
       if (outcome === "accepted") {
         console.log("✅ Usuario aceptó instalar la app");
@@ -93,13 +106,16 @@ export function PWAInstallButton() {
       } else {
         console.log("❌ Usuario rechazó instalar la app");
         setInstallState("idle");
+        // Limpiar la marca si el usuario rechaza
+        (window as WindowWithInstallPrompt).__hasInstallPrompt = false;
         // El prompt ya fue limpiado, no se puede usar de nuevo
       }
     } catch (error) {
       console.error("❌ Error al instalar la app:", error);
       setInstallState("error");
-      // Limpiar el prompt si hay error
+      // Limpiar el prompt y la marca si hay error
       setDeferredPrompt(null);
+      (window as WindowWithInstallPrompt).__hasInstallPrompt = false;
     }
   };
 

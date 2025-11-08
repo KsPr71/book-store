@@ -16,6 +16,7 @@ interface NewBook {
 interface WindowWithChannels extends Window {
   __supabaseChannel?: RealtimeChannel;
   __bookCheckInterval?: NodeJS.Timeout;
+  __hasInstallPrompt?: boolean;
 }
 
 // Tipos para Badge API
@@ -35,6 +36,20 @@ export function useNotifications() {
   // Actualizar badge del icono de la app
   const updateAppBadge = useCallback(async (count: number) => {
     if (typeof window === 'undefined') return;
+    
+    // Verificar si hay un proceso de instalación de PWA en curso
+    // Si hay un beforeinstallprompt activo, no actualizar el badge para evitar interferencias
+    const hasInstallPrompt = (window as WindowWithChannels).__hasInstallPrompt === true;
+    if (hasInstallPrompt) {
+      // Solo guardar en memoria y localStorage, no actualizar el badge visual
+      badgeCountRef.current = count;
+      if (count > 0) {
+        localStorage.setItem('notificationBadgeCount', count.toString());
+      } else {
+        localStorage.removeItem('notificationBadgeCount');
+      }
+      return;
+    }
     
     const nav = navigator as unknown as NavigatorBadge;
     if ('setAppBadge' in nav && nav.setAppBadge) {
@@ -119,12 +134,22 @@ export function useNotifications() {
     setIsSubscribed(subscription === 'true' && currentPermission === 'granted');
 
     // Restaurar contador de badge desde localStorage
+    // Deshabilitado temporalmente para evitar interferir con la instalación de PWA
+    // const savedBadgeCount = localStorage.getItem('notificationBadgeCount');
+    // if (savedBadgeCount) {
+    //   const count = parseInt(savedBadgeCount, 10);
+    //   if (!isNaN(count) && count > 0) {
+    //     badgeCountRef.current = count;
+    //     updateAppBadge(count);
+    //   }
+    // }
+    
+    // Solo restaurar el contador en memoria, sin actualizar el badge visual
     const savedBadgeCount = localStorage.getItem('notificationBadgeCount');
     if (savedBadgeCount) {
       const count = parseInt(savedBadgeCount, 10);
       if (!isNaN(count) && count > 0) {
         badgeCountRef.current = count;
-        updateAppBadge(count);
       }
     }
 
