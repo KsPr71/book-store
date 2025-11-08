@@ -15,7 +15,8 @@ export function ServiceWorkerRegister() {
           const response = await fetch("/sw.js", { method: "HEAD" });
           if (!response.ok) {
             if (process.env.NODE_ENV === "development") {
-              console.warn("⚠️ Service Worker no disponible en desarrollo (esto es normal)");
+              // Silencioso en desarrollo
+              return;
             } else {
               console.warn("⚠️ Service Worker no encontrado. Ejecuta 'npm run build' para generarlo.");
             }
@@ -23,7 +24,8 @@ export function ServiceWorkerRegister() {
           }
         } catch {
           if (process.env.NODE_ENV === "development") {
-            console.warn("⚠️ Service Worker no disponible en desarrollo (esto es normal)");
+            // Silencioso en desarrollo
+            return;
           } else {
             console.warn("⚠️ Service Worker no encontrado. Ejecuta 'npm run build' para generarlo.");
           }
@@ -36,33 +38,26 @@ export function ServiceWorkerRegister() {
         });
 
         console.log("✅ Service Worker registrado:", registration.scope);
-
-        // Verificar estado del service worker
-        if (registration.active) {
-          console.log("✅ Service Worker activo");
-        } else if (registration.installing) {
-          console.log("⏳ Service Worker instalándose...");
-        } else if (registration.waiting) {
-          console.log("⏸️ Service Worker en espera");
-        }
-
-        // Verificar actualizaciones periódicamente (solo si está activo)
-        if (registration.active) {
-          setInterval(() => {
-            registration.update();
-          }, 60 * 60 * 1000); // Cada hora
-        }
       } catch (error) {
-        console.error("❌ Error al registrar Service Worker:", error);
+        // Silenciar errores para no interferir con la instalación
+        if (process.env.NODE_ENV !== "development") {
+          console.error("❌ Error al registrar Service Worker:", error);
+        }
       }
     };
 
-    // Registrar cuando la página esté cargada
-    if (document.readyState === "complete") {
-      registerServiceWorker();
-    } else {
-      window.addEventListener("load", registerServiceWorker);
-    }
+    // Registrar cuando la página esté cargada (con delay para no interferir)
+    const timer = setTimeout(() => {
+      if (document.readyState === "complete") {
+        registerServiceWorker();
+      } else {
+        window.addEventListener("load", registerServiceWorker);
+      }
+    }, 1000); // Delay de 1 segundo para no interferir con la instalación
+
+    return () => {
+      clearTimeout(timer);
+    };
   }, []);
 
   return null;
