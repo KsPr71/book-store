@@ -13,7 +13,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { PWAHead } from "@/components/pwa-head";
 import { PWAInstallButton } from "@/components/pwa-install-button";
-
+import NotificationsDebug from "@/components/notifications-debug";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -84,6 +84,7 @@ export default function RootLayout({
           </BookStoreProvider>
         </ThemeProvider>
         <Analytics />
+        <NotificationsDebug />
         <SpeedInsights />
         <PWAHead />
         <ServiceWorkerRegister />

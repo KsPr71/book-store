@@ -26,16 +26,49 @@ export function useNotifications() {
   const showNotificationRef = useRef<(book: NewBook) => void | undefined>(undefined);
 
   // Badge API - COMPLETAMENTE DESHABILITADO para evitar interferir con instalación de PWA
-  // Se puede habilitar después de que la app esté instalada
-  const updateAppBadge = useCallback(async () => {
-    // No hacer nada - completamente deshabilitado
-    return;
+  // Badge API - Intentaremos actualizar el badge usando la API de Badging si está disponible.
+  // Guardamos un contador en localStorage para persistir el número de notificaciones no leídas.
+  const BADGE_STORAGE_KEY = 'book_unread_count';
+
+  type BadgingNavigator = Navigator & {
+    setAppBadge?: (count?: number) => Promise<void>;
+    clearAppBadge?: () => Promise<void>;
+  };
+
+  const setBadgeCount = useCallback(async (count: number) => {
+    try {
+      const nav = navigator as BadgingNavigator;
+      if (typeof nav.setAppBadge === 'function') {
+        await nav.setAppBadge(count);
+      }
+      localStorage.setItem(BADGE_STORAGE_KEY, String(count));
+    } catch (err) {
+      // Falla silenciosa - API no soportada o error
+      console.debug('Badge API set failed', err);
+    }
   }, []);
 
   const clearBadge = useCallback(async () => {
-    // No hacer nada - completamente deshabilitado
-    return;
+    try {
+      const nav = navigator as BadgingNavigator;
+      if (typeof nav.clearAppBadge === 'function') {
+        await nav.clearAppBadge();
+      }
+      localStorage.removeItem(BADGE_STORAGE_KEY);
+    } catch (err) {
+      console.debug('Badge API clear failed', err);
+    }
   }, []);
+
+  const updateAppBadge = useCallback(async (increment = 1) => {
+    try {
+      const current = parseInt(localStorage.getItem(BADGE_STORAGE_KEY) || '0', 10) || 0;
+      const next = current + increment;
+      await setBadgeCount(next);
+    } catch (err) {
+      console.debug('Error updating badge count', err);
+    }
+  }, [setBadgeCount]);
 
   // Mostrar notificación
   const showNotification = useCallback((book: NewBook) => {
@@ -66,7 +99,9 @@ export function useNotifications() {
     setTimeout(() => {
       notification.close();
     }, 5000);
-  }, []);
+    // Incrementar badge cuando se muestra notificación
+    updateAppBadge(1);
+  }, [updateAppBadge]);
 
   // Guardar referencia para usar en otros callbacks
   useEffect(() => {
@@ -164,6 +199,115 @@ export function useNotifications() {
       setError('Error al configurar las notificaciones');
     }
   }, []);
+
+  // --- PUSH API helpers ---
+  const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
+
+  const ensureServiceWorkerRegistered = useCallback(async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
+    try {
+      // Intentar registrar sw.js si no está registrado
+      // Si ya está, navigator.serviceWorker.ready devolverá el registration
+      const registration = await navigator.serviceWorker.ready;
+      return registration;
+    } catch (err) {
+      // navigator.serviceWorker.ready puede fallar si no hay SW
+      console.debug('navigator.serviceWorker.ready failed', err);
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        return reg;
+      } catch (e) {
+        console.debug('SW register failed', e);
+        return null;
+      }
+    }
+  }, []);
+
+  const getVapidKey = useCallback(async (): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/notifications/vapid');
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.publicKey as string | null;
+    } catch (err) {
+      console.error('Error fetching VAPID key', err);
+      return null;
+    }
+  }, []);
+
+  const subscribeToPush = useCallback(async (): Promise<boolean> => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setError('Push no soportado en este navegador');
+      return false;
+    }
+
+    const registration = await ensureServiceWorkerRegistered();
+    if (!registration) {
+      setError('No hay Service Worker disponible para Push');
+      return false;
+    }
+
+    const publicKey = await getVapidKey();
+    if (!publicKey) {
+      setError('No se pudo obtener la clave VAPID');
+      return false;
+    }
+
+    try {
+      const sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: Uint8Array.from(atob(publicKey), c => c.charCodeAt(0)),
+      });
+      setPushSubscription(sub);
+
+      // Enviar subscription al backend para guardar
+      await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub }),
+      });
+
+      return true;
+    } catch (err) {
+      console.error('Error subscribing to push', err);
+      setError('Error al suscribirse a Push');
+      return false;
+    }
+  }, [ensureServiceWorkerRegistered, getVapidKey]);
+
+  const unsubscribePush = useCallback(async (): Promise<boolean> => {
+    try {
+      const registration = await ensureServiceWorkerRegistered();
+      if (!registration) return false;
+      const sub = await registration.pushManager.getSubscription();
+      if (!sub) return true;
+      await sub.unsubscribe();
+      setPushSubscription(null);
+      // Informar al backend
+      await fetch('/api/notifications/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) });
+      return true;
+    } catch (err) {
+      console.error('Error unsubscribing', err);
+      return false;
+    }
+  }, [ensureServiceWorkerRegistered]);
+
+  // Inicializar estado de Push subscription
+  useEffect(() => {
+    (async () => {
+      if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          const sub = await registration.pushManager.getSubscription();
+          if (sub) setPushSubscription(sub);
+        }
+      } catch (err) {
+        console.debug('Error checking existing push subscription', err);
+      }
+    })();
+  }, []);
+
 
   // Solicitar permisos de notificación
   const requestPermission = useCallback(async (): Promise<boolean> => {
@@ -264,5 +408,9 @@ export function useNotifications() {
     showNotification,
     clearBadge,
     updateAppBadge,
+    // Push helpers
+    subscribeToPush,
+    unsubscribePush,
+    pushSubscription,
   };
 }

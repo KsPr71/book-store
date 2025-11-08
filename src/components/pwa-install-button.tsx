@@ -23,11 +23,15 @@ export function PWAInstallButton() {
     
     // En móviles, también verificar si está en modo fullscreen o standalone
     const isFullscreen = window.matchMedia("(display-mode: fullscreen)").matches;
-    
-    // Verificar si hay un service worker controlando la página (indica PWA instalada)
-    const hasServiceWorker = navigator.serviceWorker?.controller !== null;
-    
-    return isStandalone || isNavigatorStandalone || isFullscreen || hasServiceWorker;
+    // Nota: NO usamos la presencia de un service worker como indicador de "instalada" porque
+    // en muchos escenarios el SW puede estar registrado aunque la app no esté instalada.
+    // (Ej: PWA en navegador con SW para caching). Usar solo display-mode / navigator.standalone.
+    const installed = isStandalone || isNavigatorStandalone || isFullscreen;
+    // Debug: loguear las detecciones para ayudar a diagnosticar en móviles
+    if (process.env.NODE_ENV === 'development') {
+      console.log('PWA install check:', { isStandalone, isNavigatorStandalone, isFullscreen, installed });
+    }
+    return installed;
   };
 
   useEffect(() => {

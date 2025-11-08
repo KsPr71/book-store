@@ -75,20 +75,15 @@ define(['./workbox-e43f5367'], (function (workbox) { 'use strict';
   workbox.registerRoute("/", new workbox.NetworkFirst({
     "cacheName": "start-url",
     plugins: [{
-      cacheWillUpdate: async ({
-        request,
-        response,
-        event,
-        state
-      }) => {
-        if (response && response.type === 'opaqueredirect') {
-          return new Response(response.body, {
+      cacheWillUpdate: async ({ response: _response }) => {
+        if (_response && _response.type === 'opaqueredirect') {
+          return new Response(_response.body, {
             status: 200,
             statusText: 'OK',
-            headers: response.headers
+            headers: _response.headers
           });
         }
-        return response;
+        return _response;
       }
     }]
   }), 'GET');
@@ -98,3 +93,42 @@ define(['./workbox-e43f5367'], (function (workbox) { 'use strict';
   }), 'GET');
 
 }));
+
+/* Push handlers added by app */
+self.addEventListener('push', function (event) {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    console.debug('push event parse error', e);
+    data = { title: 'Nuevo mensaje', body: event.data ? event.data.text() : 'Tienes una notificación' };
+  }
+
+  const title = data.title || '📚 Nuevo libro disponible';
+  const options = {
+    body: data.body || 'Se agregó un nuevo libro al catálogo',
+    icon: data.icon || '/icons/icon-192x192.png',
+    badge: data.badge || '/icons/icon-192x192.png',
+    data: data.data || {},
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
+  );
+});
