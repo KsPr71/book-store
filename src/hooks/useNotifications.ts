@@ -129,18 +129,18 @@ export function useNotifications() {
     }
 
     // Limpiar badge cuando la página se vuelve visible (usuario visita la app)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        clearBadge();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [updateAppBadge, clearBadge]);
+    // Deshabilitado temporalmente para evitar interferir con la instalación de PWA
+    // Se puede limpiar manualmente cuando el usuario interactúa con la app
+    // const handleVisibilityChange = () => {
+    //   if (document.visibilityState === 'visible') {
+    //     clearBadge();
+    //   }
+    // };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
+    // return () => {
+    //   document.removeEventListener('visibilitychange', handleVisibilityChange);
+    // };
+  }, [updateAppBadge]);
 
   // Suscribirse a nuevos libros usando Supabase Realtime
   const subscribeToNewBooks = useCallback(async () => {
