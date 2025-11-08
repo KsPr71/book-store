@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ThemeSwitch } from "./theme-switch";
 import { useTheme } from "next-themes";
 import { useCardSize } from "@/contexts/CardSizeContext";
+import { NotificationSubscription } from "@/components/notification-subscription";
 
 type Props = {
   isOpen: boolean;
@@ -137,6 +138,19 @@ export function SettingsModal({ isOpen, onClose }: Props) {
                     }}
                   />
                 </div>
+              </div>
+
+              {/* Configuración de Notificaciones */}
+              <div className="p-4 rounded-lg bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700">
+                <div className="mb-4">
+                  <span className="text-lg font-medium text-gray-900 dark:text-white block mb-1">
+                    Notificaciones
+                  </span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Recibe alertas cuando se agreguen nuevos libros al catálogo
+                  </span>
+                </div>
+                <NotificationSubscription />
               </div>
 
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
