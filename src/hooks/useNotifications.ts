@@ -18,12 +18,54 @@ interface WindowWithChannels extends Window {
   __bookCheckInterval?: NodeJS.Timeout;
 }
 
+// Tipos para Badge API
+interface NavigatorBadge {
+  setAppBadge?(count: number | undefined): Promise<void>;
+  clearAppBadge?(): Promise<void>;
+}
+
 export function useNotifications() {
   const [permission, setPermission] = useState<NotificationPermissionState>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const showNotificationRef = useRef<(book: NewBook) => void | undefined>(undefined);
+  const badgeCountRef = useRef<number>(0);
+
+  // Actualizar badge del icono de la app
+  const updateAppBadge = useCallback(async (count: number) => {
+    if (typeof window === 'undefined') return;
+    
+    const nav = navigator as unknown as NavigatorBadge;
+    if ('setAppBadge' in nav && nav.setAppBadge) {
+      try {
+        if (count > 0) {
+          await nav.setAppBadge(count);
+          badgeCountRef.current = count;
+          localStorage.setItem('notificationBadgeCount', count.toString());
+        } else {
+          if (nav.clearAppBadge) {
+            await nav.clearAppBadge();
+          }
+          badgeCountRef.current = 0;
+          localStorage.removeItem('notificationBadgeCount');
+        }
+      } catch (err) {
+        console.error('Error al actualizar badge:', err);
+      }
+    }
+  }, []);
+
+  // Incrementar contador de badge
+  const incrementBadge = useCallback(async () => {
+    const currentCount = badgeCountRef.current;
+    await updateAppBadge(currentCount + 1);
+  }, [updateAppBadge]);
+
+  // Limpiar badge
+  const clearBadge = useCallback(async () => {
+    await updateAppBadge(0);
+  }, [updateAppBadge]);
 
   // Mostrar notificación
   const showNotification = useCallback((book: NewBook) => {
@@ -48,11 +90,14 @@ export function useNotifications() {
       notification.close();
     };
 
+    // Incrementar badge cuando se muestra una notificación
+    incrementBadge();
+
     // Cerrar automáticamente después de 5 segundos
     setTimeout(() => {
       notification.close();
     }, 5000);
-  }, []);
+  }, [incrementBadge]);
 
   // Guardar referencia para usar en otros callbacks
   useEffect(() => {
@@ -72,7 +117,30 @@ export function useNotifications() {
     // Verificar si hay una suscripción guardada
     const subscription = localStorage.getItem('bookNotificationsEnabled');
     setIsSubscribed(subscription === 'true' && currentPermission === 'granted');
-  }, []);
+
+    // Restaurar contador de badge desde localStorage
+    const savedBadgeCount = localStorage.getItem('notificationBadgeCount');
+    if (savedBadgeCount) {
+      const count = parseInt(savedBadgeCount, 10);
+      if (!isNaN(count) && count > 0) {
+        badgeCountRef.current = count;
+        updateAppBadge(count);
+      }
+    }
+
+    // Limpiar badge cuando la página se vuelve visible (usuario visita la app)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        clearBadge();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [updateAppBadge, clearBadge]);
 
   // Suscribirse a nuevos libros usando Supabase Realtime
   const subscribeToNewBooks = useCallback(async () => {
@@ -101,6 +169,7 @@ export function useNotifications() {
               showNotificationRef.current(newBook);
               // Actualizar la fecha de última verificación
               localStorage.setItem('lastBookCheckDate', new Date().toISOString());
+              // El badge se actualiza automáticamente en showNotification
             }
           }
         )
@@ -132,6 +201,7 @@ export function useNotifications() {
                 showNotificationRef.current?.(book);
               });
               localStorage.setItem('lastBookCheckDate', data.lastCheck);
+              // El badge se actualiza automáticamente en showNotification para cada libro
             }
           }
         } catch (err) {
@@ -197,9 +267,12 @@ export function useNotifications() {
   }, [subscribeToNewBooks]);
 
   // Desactivar notificaciones
-  const unsubscribe = useCallback(() => {
+  const unsubscribe = useCallback(async () => {
     localStorage.removeItem('bookNotificationsEnabled');
     setIsSubscribed(false);
+    
+    // Limpiar badge al desactivar notificaciones
+    await clearBadge();
     
     // Cancelar suscripción a Supabase Realtime
     const channel = (window as WindowWithChannels).__supabaseChannel;
@@ -214,7 +287,7 @@ export function useNotifications() {
       clearInterval(interval);
       delete (window as WindowWithChannels).__bookCheckInterval;
     }
-  }, []);
+  }, [clearBadge]);
 
   // Inicializar suscripción si está habilitada
   useEffect(() => {
@@ -246,5 +319,7 @@ export function useNotifications() {
     requestPermission,
     unsubscribe,
     showNotification,
+    clearBadge,
+    updateAppBadge,
   };
 }
