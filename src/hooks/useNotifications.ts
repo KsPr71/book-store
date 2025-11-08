@@ -34,14 +34,17 @@ export function useNotifications() {
   const badgeCountRef = useRef<number>(0);
 
   // Actualizar badge del icono de la app
+  // SOLO funciona si la app está instalada (standalone mode)
   const updateAppBadge = useCallback(async (count: number) => {
     if (typeof window === 'undefined') return;
     
-    // Verificar si hay un proceso de instalación de PWA en curso
-    // Si hay un beforeinstallprompt activo, no actualizar el badge para evitar interferencias
-    const hasInstallPrompt = (window as WindowWithChannels).__hasInstallPrompt === true;
-    if (hasInstallPrompt) {
-      // Solo guardar en memoria y localStorage, no actualizar el badge visual
+    // SOLUCIÓN DEFINITIVA: Solo actualizar badge si la app está instalada
+    // Si no está instalada, no tiene sentido mostrar badge y puede interferir con la instalación
+    const isInstalled = window.matchMedia("(display-mode: standalone)").matches || 
+                        (window.navigator as { standalone?: boolean }).standalone === true;
+    
+    if (!isInstalled) {
+      // Si no está instalada, solo guardar en memoria para cuando se instale
       badgeCountRef.current = count;
       if (count > 0) {
         localStorage.setItem('notificationBadgeCount', count.toString());
@@ -51,6 +54,7 @@ export function useNotifications() {
       return;
     }
     
+    // Solo actualizar badge si la app está instalada
     const nav = navigator as unknown as NavigatorBadge;
     if ('setAppBadge' in nav && nav.setAppBadge) {
       try {
@@ -134,22 +138,27 @@ export function useNotifications() {
     setIsSubscribed(subscription === 'true' && currentPermission === 'granted');
 
     // Restaurar contador de badge desde localStorage
-    // Deshabilitado temporalmente para evitar interferir con la instalación de PWA
-    // const savedBadgeCount = localStorage.getItem('notificationBadgeCount');
-    // if (savedBadgeCount) {
-    //   const count = parseInt(savedBadgeCount, 10);
-    //   if (!isNaN(count) && count > 0) {
-    //     badgeCountRef.current = count;
-    //     updateAppBadge(count);
-    //   }
-    // }
+    // Solo si la app está instalada (standalone mode)
+    const isInstalled = window.matchMedia("(display-mode: standalone)").matches || 
+                        (window.navigator as { standalone?: boolean }).standalone === true;
     
-    // Solo restaurar el contador en memoria, sin actualizar el badge visual
-    const savedBadgeCount = localStorage.getItem('notificationBadgeCount');
-    if (savedBadgeCount) {
-      const count = parseInt(savedBadgeCount, 10);
-      if (!isNaN(count) && count > 0) {
-        badgeCountRef.current = count;
+    if (isInstalled) {
+      const savedBadgeCount = localStorage.getItem('notificationBadgeCount');
+      if (savedBadgeCount) {
+        const count = parseInt(savedBadgeCount, 10);
+        if (!isNaN(count) && count > 0) {
+          badgeCountRef.current = count;
+          updateAppBadge(count);
+        }
+      }
+    } else {
+      // Si no está instalada, solo restaurar en memoria
+      const savedBadgeCount = localStorage.getItem('notificationBadgeCount');
+      if (savedBadgeCount) {
+        const count = parseInt(savedBadgeCount, 10);
+        if (!isNaN(count) && count > 0) {
+          badgeCountRef.current = count;
+        }
       }
     }
 
