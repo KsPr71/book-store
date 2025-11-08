@@ -124,6 +124,7 @@ export function useNotifications() {
   }, [showNotification]);
 
   // Verificar permisos y estado de suscripción al cargar
+  // SOLUCIÓN DEFINITIVA: NO inicializar nada relacionado con badge hasta que la app esté instalada
   useEffect(() => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
       setPermission('unsupported');
@@ -137,22 +138,27 @@ export function useNotifications() {
     const subscription = localStorage.getItem('bookNotificationsEnabled');
     setIsSubscribed(subscription === 'true' && currentPermission === 'granted');
 
-    // Restaurar contador de badge desde localStorage
-    // Solo si la app está instalada (standalone mode)
+    // SOLUCIÓN DEFINITIVA: NO hacer NADA con el badge hasta que la app esté instalada
+    // Esto evita cualquier interferencia con el proceso de instalación
     const isInstalled = window.matchMedia("(display-mode: standalone)").matches || 
                         (window.navigator as { standalone?: boolean }).standalone === true;
     
     if (isInstalled) {
+      // Solo si está instalada, restaurar y actualizar badge
       const savedBadgeCount = localStorage.getItem('notificationBadgeCount');
       if (savedBadgeCount) {
         const count = parseInt(savedBadgeCount, 10);
         if (!isNaN(count) && count > 0) {
           badgeCountRef.current = count;
-          updateAppBadge(count);
+          // Usar setTimeout para no bloquear el render
+          setTimeout(() => {
+            updateAppBadge(count);
+          }, 100);
         }
       }
     } else {
-      // Si no está instalada, solo restaurar en memoria
+      // Si NO está instalada: NO hacer NADA con badge
+      // Solo guardar en memoria si hay un contador guardado
       const savedBadgeCount = localStorage.getItem('notificationBadgeCount');
       if (savedBadgeCount) {
         const count = parseInt(savedBadgeCount, 10);
@@ -161,19 +167,6 @@ export function useNotifications() {
         }
       }
     }
-
-    // Limpiar badge cuando la página se vuelve visible (usuario visita la app)
-    // Deshabilitado temporalmente para evitar interferir con la instalación de PWA
-    // Se puede limpiar manualmente cuando el usuario interactúa con la app
-    // const handleVisibilityChange = () => {
-    //   if (document.visibilityState === 'visible') {
-    //     clearBadge();
-    //   }
-    // };
-    // document.addEventListener('visibilitychange', handleVisibilityChange);
-    // return () => {
-    //   document.removeEventListener('visibilitychange', handleVisibilityChange);
-    // };
   }, [updateAppBadge]);
 
   // Suscribirse a nuevos libros usando Supabase Realtime
