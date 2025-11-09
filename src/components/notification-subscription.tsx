@@ -5,7 +5,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { Bell, BellOff } from 'lucide-react';
 
 export function NotificationSubscription() {
-  const { permission, isSubscribed, isLoading, error, requestPermission, unsubscribe } = useNotifications();
+  const { permission, isSubscribed, isLoading, error, requestPermission, unsubscribe, subscribeToPush } = useNotifications();
   const [message, setMessage] = useState<string | null>(null);
 
   const handleToggle = async () => {
@@ -16,7 +16,14 @@ export function NotificationSubscription() {
     } else {
       const success = await requestPermission();
       if (success) {
-        setMessage('¡Notificaciones activadas! Te avisaremos cuando haya nuevos libros.');
+        // Además de la suscripción en tiempo real, intentar suscribir a Push para notificaciones en background
+        try {
+          await subscribeToPush();
+          setMessage('¡Notificaciones activadas! Suscripción Push creada.');
+        } catch (e) {
+          setMessage('Notificaciones activadas (realtime). Falló la suscripción Push.');
+          console.error('Error subscribing to Push after granting permission', e);
+        }
         setTimeout(() => setMessage(null), 5000);
       }
     }

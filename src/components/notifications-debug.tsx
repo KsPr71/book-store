@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
 
 export default function NotificationsDebug() {
@@ -17,6 +17,33 @@ export default function NotificationsDebug() {
     updateAppBadge,
     clearBadge,
   } = useNotifications();
+
+  const [lastServerResponse, setLastServerResponse] = useState<string | null>(null);
+  const [lastPushMessage, setLastPushMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      try {
+        const data = event.data;
+        if (data && data.type === 'PUSH_RECEIVED') {
+          setLastPushMessage(JSON.stringify(data.data));
+          console.log('Client received SW message PUSH_RECEIVED', data.data);
+        }
+      } catch (e) {
+        console.error('Error handling SW message', e);
+      }
+    };
+
+    if (navigator?.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', handler);
+    }
+
+    return () => {
+      if (navigator?.serviceWorker) {
+        navigator.serviceWorker.removeEventListener('message', handler);
+      }
+    };
+  }, []);
 
   return (
     <div className="p-4 bg-white dark:bg-neutral-900 rounded-lg shadow-sm border">
@@ -42,6 +69,26 @@ export default function NotificationsDebug() {
           onClick={() => clearBadge()}
           className="px-3 py-1 rounded bg-gray-600 text-white"
         >Limpiar Badge</button>
+        <button
+          onClick={async () => {
+            if (!pushSubscription) {
+              setLastServerResponse('No hay push subscription registrada. Suscríbete primero.');
+              return;
+            }
+            try {
+              const res = await fetch('/api/notifications/send-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscription: pushSubscription, payload: { title: 'Push desde server', body: 'Mensaje enviado desde el backend de prueba' } })
+              });
+              const json = await res.json();
+              setLastServerResponse(JSON.stringify(json));
+            } catch (err) {
+              setLastServerResponse('Error conectando con el endpoint de prueba: ' + String(err));
+            }
+          }}
+          className="px-3 py-1 rounded bg-emerald-600 text-white"
+        >Enviar push de prueba (server)</button>
       </div>
 
       <div className="text-sm">
@@ -50,6 +97,11 @@ export default function NotificationsDebug() {
         <p>Push subscription: <strong>{pushSubscription ? 'yes' : 'no'}</strong></p>
         <p>Loading: <strong>{String(isLoading)}</strong></p>
         {error && <p className="text-red-500">Error: {error}</p>}
+      </div>
+
+      <div className="mt-3 text-sm">
+        <p>Última respuesta del servidor: <strong className="break-words">{lastServerResponse || '—'}</strong></p>
+        <p>Último mensaje recibido por SW: <strong className="break-words">{lastPushMessage || '—'}</strong></p>
       </div>
 
       <div className="mt-3">

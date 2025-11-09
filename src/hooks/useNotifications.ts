@@ -125,13 +125,14 @@ export function useNotifications() {
 
   // Suscribirse a nuevos libros usando Supabase Realtime
   const subscribeToNewBooks = useCallback(async () => {
-    try {
-      // Obtener la fecha del último libro visto
-      const lastCheckDate = localStorage.getItem('lastBookCheckDate');
-      const lastCheck = lastCheckDate ? new Date(lastCheckDate) : new Date(Date.now() - 24 * 60 * 60 * 1000); // Últimas 24 horas por defecto
+    // Implementación con reintentos si el canal devuelve CHANNEL_ERROR
+    const maxRetries = 3;
+    let attempt = 0;
+    const lastCheckDate = localStorage.getItem('lastBookCheckDate');
+    const lastCheck = lastCheckDate ? new Date(lastCheckDate) : new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-      // Suscribirse a cambios en la tabla books
-      const channel = supabase
+    const createChannel = () => {
+      return supabase
         .channel('new-books-notifications')
         .on(
           'postgres_changes',
@@ -142,62 +143,90 @@ export function useNotifications() {
             filter: `status=eq.available`,
           },
           (payload) => {
-            const newBook = payload.new as NewBook;
-            const bookCreatedAt = new Date(newBook.created_at);
-
-            // Solo notificar si el libro es más reciente que la última verificación
-            if (bookCreatedAt > lastCheck && showNotificationRef.current) {
-              showNotificationRef.current(newBook);
-              // Actualizar la fecha de última verificación
-              localStorage.setItem('lastBookCheckDate', new Date().toISOString());
-              // El badge se actualiza automáticamente en showNotification
+            try {
+              const newBook = payload.new as NewBook;
+              const bookCreatedAt = new Date(newBook.created_at);
+              if (bookCreatedAt > lastCheck && showNotificationRef.current) {
+                showNotificationRef.current(newBook);
+                localStorage.setItem('lastBookCheckDate', new Date().toISOString());
+              }
+            } catch (e) {
+              console.error('Error handling realtime payload', e);
             }
           }
-        )
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ Suscrito a notificaciones de nuevos libros');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ Error en la suscripción a notificaciones');
-            setError('Error al conectar con el servidor de notificaciones');
-          }
-        });
+        );
+    };
 
-      // Guardar el canal para poder cancelarlo después
-      (window as WindowWithChannels).__supabaseChannel = channel;
-
-      // También verificar periódicamente nuevos libros (cada 5 minutos) como respaldo
-      const checkInterval = setInterval(async () => {
+  const subscribeWithRetry = async (): Promise<RealtimeChannel | void> => {
+      while (attempt < maxRetries) {
+        attempt += 1;
+        const channel = createChannel();
         try {
-          const lastCheck = localStorage.getItem('lastBookCheckDate');
-          const response = await fetch(
-            `/api/notifications/check-new-books?lastCheckDate=${lastCheck || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}`
-          );
-          
-          if (response.ok) {
-            const data = await response.json() as { newBooks: NewBook[]; lastCheck: string };
-            if (data.newBooks && data.newBooks.length > 0 && showNotificationRef.current) {
-              // Mostrar notificación para cada nuevo libro
-              data.newBooks.forEach((book) => {
-                showNotificationRef.current?.(book);
-              });
-              localStorage.setItem('lastBookCheckDate', data.lastCheck);
-              // El badge se actualiza automáticamente en showNotification para cada libro
-            }
+          const sub = await channel.subscribe();
+          // supabase channel.subscribe may return an object or set status via callback; check returned status
+          // Listen for status updates via the object's state if available
+          if (sub && (sub as unknown as { status?: string }).status === 'SUBSCRIBED') {
+            console.log('✅ Suscrito a notificaciones de nuevos libros (attempt', attempt, ')');
+            (window as WindowWithChannels).__supabaseChannel = channel;
+            break;
           }
+
+          // If subscribe didn't throw but we don't have SUBSCRIBED, attach a small listener for channel status
+          channel.subscribe((status: string) => {
+            if (status === 'SUBSCRIBED') {
+              console.log('✅ Suscrito a notificaciones de nuevos libros');
+              (window as WindowWithChannels).__supabaseChannel = channel;
+            } else if (status === 'CHANNEL_ERROR') {
+              console.error('❌ Error en la suscripción a notificaciones (status CHANNEL_ERROR)');
+              setError('Error al conectar con el servidor de notificaciones');
+            }
+          });
+
+          // If we reached here assume subscription object is acceptable
+          (window as WindowWithChannels).__supabaseChannel = channel;
+          break;
         } catch (err) {
-          console.error('Error al verificar nuevos libros:', err);
+          console.error('Suscripción intento', attempt, 'falló:', err);
+          setError('Error al conectar con el servidor de notificaciones — reintentando');
+          // Exponential backoff
+          const wait = Math.min(500 * Math.pow(2, attempt - 1), 5000);
+          await new Promise((r) => setTimeout(r, wait));
+          if (attempt >= maxRetries) {
+            console.error('Máximo de reintentos alcanzado para suscripción realtime');
+            setError('No se pudo conectar al servidor de notificaciones');
+            break;
+          }
         }
-      }, 5 * 60 * 1000); // Cada 5 minutos
+      }
+    };
 
-      // Guardar el intervalo para poder cancelarlo después
-      (window as WindowWithChannels).__bookCheckInterval = checkInterval;
+    // Start periodic polling backup (every 5 minutes) even if realtime hasn't connected yet
+    const checkInterval = setInterval(async () => {
+      try {
+        const last = localStorage.getItem('lastBookCheckDate');
+        const response = await fetch(
+          `/api/notifications/check-new-books?lastCheckDate=${last || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}`
+        );
 
-      return channel;
-    } catch (err) {
-      console.error('Error al suscribirse a nuevos libros:', err);
-      setError('Error al configurar las notificaciones');
-    }
+        if (response.ok) {
+          const data = await response.json() as { newBooks: NewBook[]; lastCheck: string };
+          if (data.newBooks && data.newBooks.length > 0 && showNotificationRef.current) {
+            data.newBooks.forEach((book) => {
+              showNotificationRef.current?.(book);
+            });
+            localStorage.setItem('lastBookCheckDate', data.lastCheck);
+          }
+        }
+      } catch (err) {
+        console.error('Error al verificar nuevos libros (polling):', err);
+      }
+    }, 5 * 60 * 1000);
+
+    (window as WindowWithChannels).__bookCheckInterval = checkInterval;
+
+    // Kick off the subscribe attempts
+    await subscribeWithRetry();
+    return (window as WindowWithChannels).__supabaseChannel;
   }, []);
 
   // --- PUSH API helpers ---
@@ -254,23 +283,42 @@ export function useNotifications() {
     }
 
     try {
+      // Convertir clave VAPID (base64url) a Uint8Array
+      const urlBase64ToUint8Array = (base64String: string) => {
+        const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+      };
+
+      const applicationServerKey = urlBase64ToUint8Array(publicKey);
+
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: Uint8Array.from(atob(publicKey), c => c.charCodeAt(0)),
+        applicationServerKey,
       });
+
       setPushSubscription(sub);
 
-      // Enviar subscription al backend para guardar
+      // Enviar subscription serializada al backend para guardar
+  type PushSubLike = PushSubscription & { toJSON?: () => Record<string, unknown> };
+  const subLike = sub as PushSubLike;
+  const subPayload = subLike.toJSON ? subLike.toJSON() : (sub as unknown as Record<string, unknown>);
       await fetch('/api/notifications/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub }),
+        body: JSON.stringify({ subscription: subPayload }),
       });
 
       return true;
     } catch (err) {
       console.error('Error subscribing to push', err);
-      setError('Error al suscribirse a Push');
+      const message = err instanceof Error ? err.message : 'Error al suscribirse a Push';
+      setError(message);
       return false;
     }
   }, [ensureServiceWorkerRegistered, getVapidKey]);

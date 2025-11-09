@@ -112,7 +112,25 @@ self.addEventListener('push', function (event) {
     data: data.data || {},
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  // Diagnostic log: indicar que el SW recibió el evento push
+  try {
+    console.debug('SW push event received, showing notification', { title, options });
+  } catch {
+    // Silently ignore console errors in older browsers
+  }
+
+  // Informar a las páginas controladas mediante postMessage para comprobación automática en dev
+  const notifyClients = clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    for (const client of clientList) {
+      try {
+        client.postMessage({ type: 'PUSH_RECEIVED', data });
+      } catch {
+        // ignore postMessage failures
+      }
+    }
+  });
+
+  event.waitUntil(Promise.all([self.registration.showNotification(title, options), notifyClients]));
 });
 
 self.addEventListener('notificationclick', function (event) {
