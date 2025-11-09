@@ -99,17 +99,18 @@ export function useNotifications() {
       },
     };
 
-    // Intentar usar service worker primero (requerido en móviles/PWA)
+    // SIEMPRE intentar usar service worker primero (requerido en móviles/PWA y maneja URLs correctamente)
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.ready;
         await registration.showNotification('📚 Nuevo libro disponible', notificationOptions);
         // Incrementar badge cuando se muestra una notificación
         incrementBadge();
-        return;
+        return; // Salir temprano - el service worker maneja todo correctamente
       } catch (swError) {
-        console.log('Service worker notification failed, trying direct Notification:', swError);
-        // Continuar con el método directo si falla
+        console.warn('Service worker notification failed, trying direct Notification:', swError);
+        // Solo continuar con el método directo si el service worker realmente falla
+        // Esto debería ser raro, ya que el service worker debería estar disponible
       }
     }
 
@@ -119,11 +120,21 @@ export function useNotifications() {
         const notification = new Notification('📚 Nuevo libro disponible', notificationOptions);
 
         notification.onclick = () => {
-          window.focus();
-          window.location.href = `/book/${book.book_id}`;
           notification.close();
           // Limpiar badge cuando el usuario hace clic en la notificación
           clearBadge();
+          
+          // Usar ruta relativa - el navegador la resolverá contra el origen actual
+          // Si la página está en producción, usará el dominio de producción
+          // Si la página está en localhost, usará localhost (solo para desarrollo)
+          const url = `/book/${book.book_id}`;
+          
+          // Enfocar la ventana y navegar usando pathname para asegurar que use el origen correcto
+          window.focus();
+          // Usar pathname en lugar de href para evitar problemas con el origen
+          if (window.location.pathname !== url) {
+            window.location.pathname = url;
+          }
         };
 
         // Incrementar badge cuando se muestra una notificación

@@ -50,12 +50,13 @@ export async function POST(req: NextRequest) {
     console.log('📚 Datos del libro:', { book_id: book.book_id, title: book.title });
 
     // Preparar el payload de la notificación (mismo formato que send-test)
+    // Usar book_id como tag para que cada notificación sea única
     const payload = {
       title: '📚 Nuevo libro disponible',
       body: `${book.title} ha sido agregado al catálogo`,
       icon: book.cover_image_url || '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',
-      tag: 'new-book',
+      tag: `book-${book.book_id}`, // Tag único por libro para que no se agrupen
       data: {
         url: `/book/${book.book_id}`,
         bookId: book.book_id,

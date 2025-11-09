@@ -99,14 +99,15 @@ define(['./workbox-e43f5367'], (function (workbox) { 'use strict';
 
   // Push Notifications
   self.addEventListener('push', (event) => {
-    console.log('[SW] Push event received:', event);
+    console.log('[SW] 🔔 Push event received:', event);
+    console.log('[SW] Event data type:', event.data ? event.data.type : 'no data');
 
     let notificationData = {
       title: '📚 Nuevo libro disponible',
       body: 'Se ha agregado un nuevo libro al catálogo',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',
-      tag: 'new-book',
+      tag: `notification-${Date.now()}`, // Tag único por defecto para evitar agrupación
       requireInteraction: false,
       data: {},
     };
@@ -114,55 +115,67 @@ define(['./workbox-e43f5367'], (function (workbox) { 'use strict';
     if (event.data) {
       try {
         const data = event.data.json();
-        console.log('[SW] Parsed push data:', data);
+        console.log('[SW] ✅ Parsed push data (JSON):', data);
         notificationData = {
           ...notificationData,
           title: data.title || notificationData.title,
           body: data.body || notificationData.body,
           icon: data.icon || notificationData.icon,
+          badge: data.badge || notificationData.badge,
+          tag: data.tag || notificationData.tag,
           data: data.data || {},
         };
       } catch (e) {
-        console.log('[SW] Error parsing JSON, trying text:', e);
-        const text = event.data.text();
-        if (text) {
-          try {
-            const data = JSON.parse(text);
-            notificationData = {
-              ...notificationData,
-              title: data.title || notificationData.title,
-              body: data.body || notificationData.body,
-              icon: data.icon || notificationData.icon,
-              data: data.data || {},
-            };
-          } catch (e2) {
-            console.log('[SW] Using text as body:', text);
-            notificationData.body = text;
+        console.log('[SW] ⚠️ Error parsing JSON, trying text:', e);
+        try {
+          const text = event.data.text();
+          if (text) {
+            try {
+              const data = JSON.parse(text);
+              console.log('[SW] ✅ Parsed push data (text->JSON):', data);
+              notificationData = {
+                ...notificationData,
+                title: data.title || notificationData.title,
+                body: data.body || notificationData.body,
+                icon: data.icon || notificationData.icon,
+                badge: data.badge || notificationData.badge,
+                tag: data.tag || notificationData.tag,
+                data: data.data || {},
+              };
+            } catch (e2) {
+              console.log('[SW] ⚠️ Using text as body:', text);
+              notificationData.body = text;
+            }
           }
+        } catch (e3) {
+          console.error('[SW] ❌ Error reading event data:', e3);
         }
       }
+    } else {
+      console.log('[SW] ⚠️ No data in push event, using defaults');
     }
 
-    console.log('[SW] Showing notification with data:', notificationData);
+    console.log('[SW] 📋 Final notification data:', notificationData);
 
-    // Verificar si hay clientes visibles (pestañas abiertas)
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    // SIEMPRE mostrar la notificación, independientemente del estado de los clientes
+    const showNotificationPromise = (async () => {
+      try {
+        // Verificar si hay clientes visibles
+        const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
         const hasVisibleClient = clientList.some(client => client.visibilityState === 'visible');
-        console.log('[SW] Has visible client:', hasVisibleClient);
-        console.log('[SW] Total clients:', clientList.length);
+        console.log('[SW] 👁️ Has visible client:', hasVisibleClient);
+        console.log('[SW] 👥 Total clients:', clientList.length);
         
-        // Mostrar notificación siempre, incluso si hay clientes visibles
-        // Algunos navegadores no muestran notificaciones si la pestaña está activa
+        // Preparar opciones de notificación
         const notificationOptions = {
           body: notificationData.body,
           icon: notificationData.icon,
           badge: notificationData.badge,
-          tag: notificationData.tag,
-          requireInteraction: true, // Forzar interacción para que siempre se muestre
+          tag: notificationData.tag || `notification-${Date.now()}`, // Tag único si no se proporciona
+          requireInteraction: false, // Cambiar a false para que se muestre incluso en segundo plano
           data: notificationData.data,
           vibrate: [200, 100, 200],
-          silent: false, // Asegurar que no esté silenciosa
+          silent: false,
           actions: [
             {
               action: 'open',
@@ -175,21 +188,29 @@ define(['./workbox-e43f5367'], (function (workbox) { 'use strict';
           ],
         };
 
-        return self.registration.showNotification(notificationData.title, notificationOptions)
-          .then(() => {
-            console.log('[SW] ✅ Notification shown successfully');
-            console.log('[SW] Notification options:', notificationOptions);
-          })
-          .catch((error) => {
-            console.error('[SW] ❌ Error showing notification:', error);
-            console.error('[SW] Error details:', {
-              name: error.name,
-              message: error.message,
-              stack: error.stack,
-            });
-          });
-      })
-    );
+        console.log('[SW] 📤 Attempting to show notification with options:', notificationOptions);
+        console.log('[SW] 📋 Notification title:', notificationData.title);
+        
+        // Mostrar la notificación - esto debería funcionar siempre que el service worker esté activo
+        // y los permisos estén concedidos
+        await self.registration.showNotification(notificationData.title, notificationOptions);
+        console.log('[SW] ✅ Notification shown successfully');
+        
+        return true;
+      } catch (error) {
+        console.error('[SW] ❌ Error showing notification:', error);
+        console.error('[SW] Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        });
+        // No lanzar el error para que el badge se actualice de todas formas
+        return false;
+      }
+    })();
+
+    // Usar waitUntil para mantener el service worker activo
+    event.waitUntil(showNotificationPromise);
 
     event.waitUntil(
       self.clients.matchAll().then((clientList) => {
