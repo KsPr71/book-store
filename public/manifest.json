@@ -2,6 +2,7 @@
   "name": "Click & Read - Catálogo de Libros Electrónicos",
   "short_name": "Click & Read",
   "description": "Catálogo de libros electrónicos",
+  "id": "/",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -36,6 +37,7 @@
   ],
   "categories": ["books", "education", "shopping"],
   "lang": "es",
-  "dir": "ltr"
+  "dir": "ltr",
+  "prefer_related_applications": false
 }
 
