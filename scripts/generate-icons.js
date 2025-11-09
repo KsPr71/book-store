@@ -31,19 +31,20 @@ async function generateIcons() {
     for (const { size, name } of sizes) {
       const outputPath = path.join(outputDir, name);
       
-      // Primero redimensionar el SVG con color negro explícito, luego crear canvas blanco y superponer
       // Leer el SVG y reemplazar currentColor con negro
       const svgContent = fs.readFileSync(inputSvg, 'utf8');
       const svgWithBlackFill = svgContent.replace(/fill="currentColor"/g, 'fill="#000000"');
       
-      // Calcular el tamaño del logo con padding (80% del tamaño total para dejar espacio en los laterales)
-      const logoSize = Math.floor(size * 0.8);
+      // Para iconos "any": usar 90% del tamaño (menos padding)
+      // Para iconos maskable: usar 80% del tamaño (más padding seguro)
+      // Por ahora generamos con 85% como balance
+      const logoSize = Math.floor(size * 0.85);
       const padding = Math.floor((size - logoSize) / 2);
       
       const resizedSvg = await sharp(Buffer.from(svgWithBlackFill))
         .resize(logoSize, logoSize, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 0 } // Transparente para el padding
+          background: { r: 255, g: 255, b: 255, alpha: 0 }
         })
         .toBuffer();
 
@@ -64,7 +65,7 @@ async function generateIcons() {
             blend: 'over'
           }
         ])
-        .flatten({ background: { r: 255, g: 255, b: 255 } }) // Asegurar fondo blanco sólido
+        .flatten({ background: { r: 255, g: 255, b: 255 } })
         .png({ 
           quality: 100,
           compressionLevel: 9,
@@ -74,6 +75,58 @@ async function generateIcons() {
         .toFile(outputPath);
 
       console.log(`✅ Generado: ${name} (${size}x${size})`);
+    }
+    
+    // Generar iconos maskable específicos con más padding (80% para cumplir con el estándar)
+    console.log('\n🎨 Generando iconos maskable con padding seguro...\n');
+    const maskableSizes = [
+      { size: 192, name: 'icon-192x192-maskable.png' },
+      { size: 512, name: 'icon-512x512-maskable.png' }
+    ];
+    
+    for (const { size, name } of maskableSizes) {
+      const outputPath = path.join(outputDir, name);
+      
+      const svgContent = fs.readFileSync(inputSvg, 'utf8');
+      const svgWithBlackFill = svgContent.replace(/fill="currentColor"/g, 'fill="#000000"');
+      
+      // Para maskable: usar 80% del tamaño (padding seguro del 20%)
+      const logoSize = Math.floor(size * 0.8);
+      const padding = Math.floor((size - logoSize) / 2);
+      
+      const resizedSvg = await sharp(Buffer.from(svgWithBlackFill))
+        .resize(logoSize, logoSize, {
+          fit: 'contain',
+          background: { r: 255, g: 255, b: 255, alpha: 0 }
+        })
+        .toBuffer();
+
+      await sharp({
+        create: {
+          width: size,
+          height: size,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 1 }
+        }
+      })
+        .composite([
+          {
+            input: resizedSvg,
+            top: padding,
+            left: padding,
+            blend: 'over'
+          }
+        ])
+        .flatten({ background: { r: 255, g: 255, b: 255 } })
+        .png({ 
+          quality: 100,
+          compressionLevel: 9,
+          adaptiveFiltering: true,
+          force: true
+        })
+        .toFile(outputPath);
+
+      console.log(`✅ Generado maskable: ${name} (${size}x${size})`);
     }
 
     console.log('\n✨ ¡Todos los iconos han sido generados exitosamente!');
