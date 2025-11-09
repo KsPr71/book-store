@@ -62,7 +62,7 @@ if (!self.define) {
         return promise;
       })
     );
-  };;;
+  };;;;
 
   self.define = (depsNames, factory) => {
     const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
