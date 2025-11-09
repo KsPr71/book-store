@@ -61,18 +61,14 @@ export function ServiceWorkerRegister() {
       }
     };
 
-    // Registrar cuando la página esté cargada (con delay para no interferir)
-    const timer = setTimeout(() => {
-      if (document.readyState === "complete") {
-        registerServiceWorker();
-      } else {
-        window.addEventListener("load", registerServiceWorker);
-      }
-    }, 1000); // Delay de 1 segundo para no interferir con la instalación
-
-    return () => {
-      clearTimeout(timer);
-    };
+    // Registrar inmediatamente cuando la página esté lista (sin delay para PWA)
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+      registerServiceWorker();
+    } else {
+      window.addEventListener("load", registerServiceWorker, { once: true });
+      // También intentar cuando DOMContentLoaded para ser más rápido
+      document.addEventListener("DOMContentLoaded", registerServiceWorker, { once: true });
+    }
   }, []);
 
   return null;

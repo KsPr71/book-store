@@ -24,10 +24,10 @@ export function PWAInstallButton() {
     // En móviles, también verificar si está en modo fullscreen o standalone
     const isFullscreen = window.matchMedia("(display-mode: fullscreen)").matches;
     
-    // Verificar si hay un service worker controlando la página (indica PWA instalada)
-    const hasServiceWorker = navigator.serviceWorker?.controller !== null;
+    // NO usar service worker como indicador de instalación
+    // porque puede estar activo sin que la PWA esté instalada
     
-    return isStandalone || isNavigatorStandalone || isFullscreen || hasServiceWorker;
+    return isStandalone || isNavigatorStandalone || isFullscreen;
   };
 
   useEffect(() => {
@@ -67,9 +67,23 @@ export function PWAInstallButton() {
       setDeferredPrompt(null);
     };
 
-    // También verificar periódicamente si se instaló (por si el evento no se dispara)
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  // Verificar periódicamente si se instaló (especialmente después de aceptar)
+  useEffect(() => {
+    if (isInstalled) {
+      return; // No verificar si ya está instalada
+    }
+
+    // Verificar más frecuentemente si está en estado "installing"
+    const checkInterval = installState === "installing" ? 500 : 2000;
     const periodicCheck = setInterval(() => {
-      if (checkIfInstalled() && !isInstalled) {
+      if (checkIfInstalled()) {
         console.log("✅ App instalada detectada por verificación periódica");
         setIsInstalled(true);
         setShowButton(false);
@@ -77,15 +91,12 @@ export function PWAInstallButton() {
         setDeferredPrompt(null);
         clearInterval(periodicCheck);
       }
-    }, 2000); // Cada 2 segundos
-
-    window.addEventListener("appinstalled", handleAppInstalled);
+    }, checkInterval);
 
     return () => {
-      window.removeEventListener("appinstalled", handleAppInstalled);
       clearInterval(periodicCheck);
     };
-  }, [isInstalled]);
+  }, [installState, isInstalled]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
@@ -93,18 +104,28 @@ export function PWAInstallButton() {
       return;
     }
 
+    // Verificar que el service worker esté activo antes de instalar
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      console.log("✅ Service Worker está listo:", registration.active?.scriptURL);
+    } catch (swError) {
+      console.warn("⚠️ Service Worker no está listo, esperando...");
+      // Esperar un momento para que el service worker se active
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
     // Guardar referencia local del prompt
     const prompt = deferredPrompt;
 
     try {
       console.log("📱 Mostrando prompt de instalación...");
+      setInstallState("installing");
+      
       // Mostrar el prompt de instalación
-      // En móviles, esto debe mostrar un diálogo del sistema
       await prompt.prompt();
       console.log("📱 Prompt mostrado, esperando respuesta del usuario...");
 
       // Esperar a que el usuario responda
-      // En móviles, esto puede tardar más tiempo
       const { outcome } = await prompt.userChoice;
       console.log("📱 Usuario respondió:", outcome);
 
@@ -113,39 +134,9 @@ export function PWAInstallButton() {
 
       if (outcome === "accepted") {
         console.log("✅ Usuario aceptó instalar la app");
+        // El evento 'appinstalled' debería dispararse automáticamente
+        // Si no se dispara, el useEffect lo detectará con la verificación periódica
         setInstallState("installing");
-        
-        // En móviles, después de aceptar, la app se instala pero la página actual
-        // sigue en el navegador, por lo que checkIfInstalled() puede seguir devolviendo false
-        // El evento 'appinstalled' debería dispararse, pero a veces no lo hace
-        
-        // Esperar un momento para que se complete la instalación
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Verificar si se instaló (puede que la página se haya recargado o cambiado)
-        if (checkIfInstalled()) {
-          console.log("✅ App instalada detectada inmediatamente");
-          setIsInstalled(true);
-          setShowButton(false);
-          setInstallState("installed");
-        } else {
-          // Si no se detecta, puede que se haya instalado pero la página sigue en navegador
-          // En este caso, mostrar mensaje de éxito y ocultar el botón temporalmente
-          console.log("✅ Instalación aceptada - La app debería estar instalándose");
-          setInstallState("installed");
-          setShowButton(false);
-          
-          // Después de 3 segundos, verificar de nuevo
-          setTimeout(() => {
-            if (checkIfInstalled()) {
-              setIsInstalled(true);
-            } else {
-              // Si aún no se detecta, puede que necesite recargar
-              // Pero asumimos que se instaló si el usuario aceptó
-              setIsInstalled(true);
-            }
-          }, 3000);
-        }
       } else {
         console.log("❌ Usuario rechazó instalar la app");
         setInstallState("idle");
