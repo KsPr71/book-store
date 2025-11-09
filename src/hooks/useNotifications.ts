@@ -37,7 +37,7 @@ export function useNotifications() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
-  const showNotificationRef = useRef<(book: NewBook) => void | undefined>(undefined);
+  const showNotificationRef = useRef<(book: NewBook) => Promise<void> | void | undefined>(undefined);
   const badgeCountRef = useRef<number>(0);
 
   // Badge API - Habilitado para mostrar número de notificaciones
@@ -83,11 +83,11 @@ export function useNotifications() {
   }, [updateAppBadge]);
 
   // Mostrar notificación
-  const showNotification = useCallback((book: NewBook) => {
-    if (typeof window === 'undefined' || !('Notification' in window)) return;
+  const showNotification = useCallback(async (book: NewBook) => {
+    if (typeof window === 'undefined') return;
     if (Notification.permission !== 'granted') return;
 
-    const notification = new Notification('📚 Nuevo libro disponible', {
+    const notificationOptions = {
       body: `${book.title} ha sido agregado al catálogo`,
       icon: book.cover_image_url || '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',
@@ -97,23 +97,56 @@ export function useNotifications() {
         url: `/book/${book.book_id}`,
         bookId: book.book_id,
       },
-    });
-
-    notification.onclick = () => {
-      window.focus();
-      window.location.href = `/book/${book.book_id}`;
-      notification.close();
-      // Limpiar badge cuando el usuario hace clic en la notificación
-      clearBadge();
     };
 
-    // Incrementar badge cuando se muestra una notificación
-    incrementBadge();
+    // Intentar usar service worker primero (requerido en móviles/PWA)
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification('📚 Nuevo libro disponible', notificationOptions);
+        // Incrementar badge cuando se muestra una notificación
+        incrementBadge();
+        return;
+      } catch (swError) {
+        console.log('Service worker notification failed, trying direct Notification:', swError);
+        // Continuar con el método directo si falla
+      }
+    }
 
-    // Cerrar automáticamente después de 5 segundos
-    setTimeout(() => {
-      notification.close();
-    }, 5000);
+    // Fallback: usar Notification directo (solo funciona en desktop)
+    try {
+      if ('Notification' in window) {
+        const notification = new Notification('📚 Nuevo libro disponible', notificationOptions);
+
+        notification.onclick = () => {
+          window.focus();
+          window.location.href = `/book/${book.book_id}`;
+          notification.close();
+          // Limpiar badge cuando el usuario hace clic en la notificación
+          clearBadge();
+        };
+
+        // Incrementar badge cuando se muestra una notificación
+        incrementBadge();
+
+        // Cerrar automáticamente después de 5 segundos
+        setTimeout(() => {
+          notification.close();
+        }, 5000);
+      }
+    } catch (err) {
+      console.error('Error showing notification:', err);
+      // Si falla, intentar con service worker como último recurso
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification('📚 Nuevo libro disponible', notificationOptions);
+          incrementBadge();
+        } catch (finalError) {
+          console.error('All notification methods failed:', finalError);
+        }
+      }
+    }
   }, [incrementBadge, clearBadge]);
 
   // Guardar referencia para usar en otros callbacks

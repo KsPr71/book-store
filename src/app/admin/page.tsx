@@ -10,8 +10,9 @@ import { AuthorForm } from '@/components/admin/author-form';
 import { CategoryForm } from '@/components/admin/category-form';
 import { UserList } from '@/components/admin/user-list';
 import { AnalyticsDashboard } from '@/components/admin/analytics-dashboard';
+import NotificationsDebug from '@/components/notifications-debug';
 
-type TabType = 'books' | 'list' | 'authors' | 'categories' | 'users' | 'analytics';
+type TabType = 'books' | 'list' | 'authors' | 'categories' | 'users' | 'analytics' | 'notifications';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -55,18 +56,18 @@ export default function AdminPage() {
             Panel de Administración
           </h1>
           <p className="text-neutral-600 dark:text-neutral-400">
-            Gestiona libros, autores, categorías, usuarios y visualiza analytics
+            Gestiona libros, autores, categorías, usuarios, visualiza analytics y configura notificaciones
           </p>
         </div>
 
         {/* Tabs */}
         <div className="border-b border-neutral-200 dark:border-neutral-700 mb-6">
-          <nav className="flex space-x-8">
-            {(['books', 'list', 'authors', 'categories', 'users', 'analytics'] as TabType[]).map((tab) => (
+          <nav className="flex space-x-8 overflow-x-auto">
+            {(['books', 'list', 'authors', 'categories', 'users', 'analytics', 'notifications'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
                   activeTab === tab
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                     : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300 dark:text-neutral-400 dark:hover:text-neutral-300'
@@ -78,6 +79,7 @@ export default function AdminPage() {
                 {tab === 'categories' && 'Categorías'}
                 {tab === 'users' && 'Usuarios'}
                 {tab === 'analytics' && 'Analytics'}
+                {tab === 'notifications' && 'Notificaciones'}
               </button>
             ))}
           </nav>
@@ -91,6 +93,17 @@ export default function AdminPage() {
           {activeTab === 'categories' && <CategoryForm />}
           {activeTab === 'users' && <UserList />}
           {activeTab === 'analytics' && <AnalyticsDashboard />}
+          {activeTab === 'notifications' && (
+            <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 p-6">
+              <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-4">
+                Debug de Notificaciones Push
+              </h2>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+                Herramientas de diagnóstico y prueba para las notificaciones push. Útil para verificar que las notificaciones funcionen correctamente.
+              </p>
+              <NotificationsDebug />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -13,7 +13,6 @@ export default function NotificationsDebug() {
     subscribeToPush,
     unsubscribePush,
     pushSubscription,
-    showNotification,
     updateAppBadge,
     clearBadge,
   } = useNotifications();
@@ -106,9 +105,25 @@ export default function NotificationsDebug() {
 
       <div className="mt-3">
         <button
-          onClick={() => showNotification?.({ book_id: 'debug-1', title: 'Libro debug', created_at: new Date().toISOString() })}
+          onClick={async () => {
+            try {
+              // Usar service worker para mostrar notificación (funciona en móviles)
+              const registration = await navigator.serviceWorker.ready;
+              await registration.showNotification('🧪 Prueba de Notificación (SW)', {
+                body: 'Si ves esto, las notificaciones funcionan a través del service worker',
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-192x192.png',
+                tag: 'test-notification-sw',
+                requireInteraction: true,
+              });
+              console.log('✅ Notificación mostrada a través del service worker');
+            } catch (err) {
+              console.error('❌ Error mostrando notificación:', err);
+              alert('Error: ' + String(err));
+            }
+          }}
           className="px-3 py-1 rounded bg-pink-600 text-white"
-        >Mostrar notificación</button>
+        >Mostrar notificación (SW)</button>
         <button
           onClick={async () => {
             if (Notification.permission !== 'granted') {
@@ -116,25 +131,48 @@ export default function NotificationsDebug() {
               return;
             }
             
-            // Probar notificación directa del navegador
+            // Intentar notificación directa del navegador (solo funciona en desktop)
             try {
-              const notification = new Notification('🧪 Prueba de Notificación', {
-                body: 'Si ves esto, las notificaciones del navegador funcionan',
-                icon: '/icons/icon-192x192.png',
-                badge: '/icons/icon-192x192.png',
-                tag: 'test-notification',
-                requireInteraction: true,
-              });
-              
-              notification.onclick = () => {
-                window.focus();
-                notification.close();
-              };
-              
-              console.log('✅ Notificación del navegador mostrada');
+              // Verificar si podemos usar Notification directamente
+              if (typeof Notification !== 'undefined' && 'Notification' in window) {
+                const notification = new Notification('🧪 Prueba de Notificación', {
+                  body: 'Si ves esto, las notificaciones del navegador funcionan (solo desktop)',
+                  icon: '/icons/icon-192x192.png',
+                  badge: '/icons/icon-192x192.png',
+                  tag: 'test-notification',
+                  requireInteraction: true,
+                });
+                
+                notification.onclick = () => {
+                  window.focus();
+                  notification.close();
+                };
+                
+                console.log('✅ Notificación del navegador mostrada');
+              } else {
+                throw new Error('Notification API no disponible');
+              }
             } catch (err) {
-              console.error('❌ Error mostrando notificación:', err);
-              alert('Error: ' + String(err));
+              const error = err as Error;
+              console.error('❌ Error mostrando notificación:', error);
+              // En móviles, usar service worker en su lugar
+              if (error.message?.includes('ServiceWorker') || error.message?.includes('Illegal constructor')) {
+                try {
+                  const registration = await navigator.serviceWorker.ready;
+                  await registration.showNotification('🧪 Prueba de Notificación (SW)', {
+                    body: 'Usando service worker (requerido en móviles)',
+                    icon: '/icons/icon-192x192.png',
+                    badge: '/icons/icon-192x192.png',
+                    tag: 'test-notification-sw-fallback',
+                    requireInteraction: true,
+                  });
+                  console.log('✅ Notificación mostrada a través del service worker (fallback)');
+                } catch (swErr) {
+                  alert('Error: ' + String(swErr));
+                }
+              } else {
+                alert('Error: ' + String(err));
+              }
             }
           }}
           className="px-3 py-1 rounded bg-purple-600 text-white ml-2"
