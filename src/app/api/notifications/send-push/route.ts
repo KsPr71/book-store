@@ -27,12 +27,10 @@ export async function POST(req: NextRequest) {
     webpush.setVapidDetails(contact, publicKey, privateKey);
 
     // Obtener todas las suscripciones activas
-    // Filtrar para evitar duplicados: priorizar móviles sobre desktop
-    // Si hay múltiples suscripciones del mismo usuario, enviar solo a móvil
-    const { data: allSubscriptions, error: fetchError } = await supabase
+    // Enviar notificaciones a TODOS los usuarios sin importar la plataforma
+    const { data: subscriptions, error: fetchError } = await supabase
       .from('push_subscriptions')
-      .select('endpoint, keys, device_type, user_agent')
-      .order('device_type', { ascending: true }); // mobile primero, luego desktop
+      .select('endpoint, keys');
 
     if (fetchError) {
       console.error('Error fetching subscriptions:', fetchError);
@@ -43,31 +41,6 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({ ok: false, error: 'Error fetching subscriptions' }, { status: 500 });
     }
-
-    // Filtrar suscripciones para evitar duplicados
-    // Si hay múltiples suscripciones del mismo usuario (mismo user_agent), priorizar móvil
-    const subscriptionsMap = new Map<string, typeof allSubscriptions[0]>();
-    
-    if (allSubscriptions) {
-      for (const sub of allSubscriptions) {
-        // Usar user_agent como clave para identificar usuarios duplicados
-        const userKey = sub.user_agent || sub.endpoint;
-        
-        // Si ya existe una suscripción para este usuario
-        if (subscriptionsMap.has(userKey)) {
-          const existing = subscriptionsMap.get(userKey)!;
-          // Priorizar móvil sobre desktop
-          if (sub.device_type === 'mobile' && existing.device_type === 'desktop') {
-            subscriptionsMap.set(userKey, sub);
-          }
-          // Si ambas son del mismo tipo, mantener la más reciente (ya están ordenadas)
-        } else {
-          subscriptionsMap.set(userKey, sub);
-        }
-      }
-    }
-
-    const subscriptions = Array.from(subscriptionsMap.values());
 
     if (!subscriptions || subscriptions.length === 0) {
       console.log('⚠️ No push subscriptions found in database');
