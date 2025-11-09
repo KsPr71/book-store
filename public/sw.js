@@ -12,7 +12,22 @@
  */
 // Cargar Workbox síncronamente al inicio (requerido por service workers)
 // Esto evita el error "importScripts() of new scripts after service worker installation is not allowed"
-importScripts('/workbox-e43f5367.js');
+// NOTA: Si Workbox no está disponible, el service worker seguirá funcionando para push notifications
+try {
+  importScripts('/workbox-e43f5367.js');
+  console.log('[SW] ✅ Workbox cargado correctamente');
+} catch (e) {
+  console.warn('[SW] ⚠️ Workbox no disponible, continuando sin caching avanzado:', e.message);
+  // El service worker continuará funcionando para push notifications
+  // Solo se perderá la funcionalidad de caching de Workbox
+  // Crear un objeto workbox mínimo para evitar errores en el código que lo usa
+  if (typeof self.workbox === 'undefined') {
+    self.workbox = {
+      clientsClaim: () => {},
+      registerRoute: () => {},
+    };
+  }
+}
 
 
 // If the loader is already loaded, just stop.
@@ -62,7 +77,7 @@ if (!self.define) {
         return promise;
       })
     );
-  };;;;
+  };;;;;;;;
 
   self.define = (depsNames, factory) => {
     const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;

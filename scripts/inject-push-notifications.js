@@ -226,15 +226,43 @@ function injectPushNotifications() {
       console.log(`🔧 Corrigiendo carga asíncrona de Workbox: ${workboxFile}`);
       
       // Verificar si Workbox ya se carga síncronamente al inicio
-      if (!swContent.includes('// Cargar Workbox síncronamente')) {
-        // Insertar carga síncrona de Workbox justo después de los comentarios de copyright
-        const copyrightEnd = swContent.indexOf('*/') + 2;
-        if (copyrightEnd > 1) {
-          const workboxUrl = `/${workboxFile}.js`;
-          // Usar URL relativa para que funcione en cualquier dominio
-          const syncLoadCode = `\n// Cargar Workbox síncronamente al inicio (requerido por service workers)\n// Esto evita el error "importScripts() of new scripts after service worker installation is not allowed"\nimportScripts('${workboxUrl}');\n`;
-          swContent = swContent.slice(0, copyrightEnd) + syncLoadCode + swContent.slice(copyrightEnd);
-          console.log('✅ Carga síncrona de Workbox insertada al inicio');
+      // También verificar si necesita actualizarse con manejo de errores
+      const hasWorkboxLoad = swContent.includes('// Cargar Workbox síncronamente');
+      const hasErrorHandling = swContent.includes('Workbox no disponible');
+      
+      // Preparar el código de carga con manejo de errores
+      const workboxUrl = `/${workboxFile}.js`;
+      const syncLoadCode = `\n// Cargar Workbox síncronamente al inicio (requerido por service workers)\n// Esto evita el error "importScripts() of new scripts after service worker installation is not allowed"\n// NOTA: Si Workbox no está disponible, el service worker seguirá funcionando para push notifications\ntry {\n  importScripts('${workboxUrl}');\n  console.log('[SW] ✅ Workbox cargado correctamente');\n} catch (e) {\n  console.warn('[SW] ⚠️ Workbox no disponible, continuando sin caching avanzado:', e.message);\n  // El service worker continuará funcionando para push notifications\n  // Solo se perderá la funcionalidad de caching de Workbox\n  // Crear un objeto workbox mínimo para evitar errores en el código que lo usa\n  if (typeof self.workbox === 'undefined') {\n    self.workbox = {\n      clientsClaim: () => {},\n      registerRoute: () => {},\n    };\n  }\n}\n`;
+      
+      if (!hasWorkboxLoad || !hasErrorHandling) {
+        // Si ya existe pero no tiene manejo de errores, reemplazarlo
+        if (hasWorkboxLoad && !hasErrorHandling) {
+          // Buscar y reemplazar el bloque de importScripts existente (más flexible)
+          const importScriptsPattern = /\/\/ Cargar Workbox síncronamente[\s\S]*?\/\/ Esto evita el error[\s\S]*?importScripts\([^)]+\);/;
+          if (importScriptsPattern.test(swContent)) {
+            swContent = swContent.replace(importScriptsPattern, syncLoadCode.trim());
+            console.log('✅ Código de carga de Workbox actualizado con manejo de errores');
+          } else {
+            // Intentar un patrón más simple
+            const simplePattern = /importScripts\('\/workbox-[^']+\.js'\);/;
+            if (simplePattern.test(swContent)) {
+              swContent = swContent.replace(simplePattern, syncLoadCode.trim().replace(/^[\s\S]*?importScripts/, 'importScripts'));
+              // Insertar los comentarios antes
+              const insertPos = swContent.indexOf('importScripts');
+              if (insertPos > 0) {
+                const commentBlock = syncLoadCode.split('importScripts')[0];
+                swContent = swContent.slice(0, insertPos) + commentBlock + swContent.slice(insertPos);
+              }
+              console.log('✅ Código de carga de Workbox actualizado con manejo de errores (patrón simple)');
+            }
+          }
+        } else if (!hasWorkboxLoad) {
+          // Insertar carga síncrona de Workbox justo después de los comentarios de copyright
+          const copyrightEnd = swContent.indexOf('*/') + 2;
+          if (copyrightEnd > 1) {
+            swContent = swContent.slice(0, copyrightEnd) + syncLoadCode + swContent.slice(copyrightEnd);
+            console.log('✅ Carga síncrona de Workbox insertada al inicio con manejo de errores');
+          }
         }
       }
       
