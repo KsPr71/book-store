@@ -2,7 +2,7 @@
   "name": "Click & Read - Catálogo de Libros Electrónicos",
   "short_name": "Click & Read",
   "description": "Catálogo de libros electrónicos",
-  "id": "/",
+  "id": "https://book-store-weld-one.vercel.app/",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
