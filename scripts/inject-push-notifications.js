@@ -201,9 +201,26 @@ function injectPushNotifications() {
     // Leer el contenido actual
     let swContent = fs.readFileSync(SW_PATH, 'utf8');
 
+    // Corregir la ruta del workbox a una ruta absoluta para evitar errores 404 en producción
+    // Buscar patrones como './workbox-*.js' y reemplazarlos con rutas absolutas
+    const workboxPattern = /define\(\[['"]\.\/(workbox-[^'"]+)['"]/g;
+    
+    if (workboxPattern.test(swContent)) {
+      // Reemplazar todas las ocurrencias de './workbox-*.js' con '/workbox-*.js'
+      swContent = swContent.replace(
+        /define\(\[['"]\.\/(workbox-[^'"]+)['"]/g,
+        (match, workboxFile) => {
+          console.log(`✅ Ruta de workbox corregida: ./${workboxFile} -> /${workboxFile}`);
+          return `define(['"/${workboxFile}"']`;
+        }
+      );
+    }
+
     // Verificar si el código ya está inyectado
     if (swContent.includes('Push Notifications')) {
       console.log('✅ Código de push notifications ya está presente en sw.js');
+      // Aún así, escribir el archivo con la ruta corregida
+      fs.writeFileSync(SW_PATH, swContent, 'utf8');
       return;
     }
 

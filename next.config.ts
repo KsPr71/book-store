@@ -38,6 +38,7 @@ const pwaConfig = withPWA({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development', // Deshabilitar en desarrollo para evitar regeneración múltiple
+  buildExcludes: [/middleware-manifest\.json$/],
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/.*\.supabase\.(co|in|storage)\/.*/i,
