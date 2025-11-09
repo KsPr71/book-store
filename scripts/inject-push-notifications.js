@@ -171,11 +171,28 @@ const PUSH_NOTIFICATIONS_CODE = `
     }
 
     // Abrir la URL del libro o la página principal
-    const urlToOpen = event.notification.data?.url || '/';
+    // La URL puede ser absoluta (https://...) o relativa (/book/...)
+    let urlToOpen = event.notification.data?.url || '/';
+    
+    // URL de producción (siempre usar esta en lugar de preview)
+    const PRODUCTION_URL = 'https://book-store-weld-one.vercel.app';
     
     event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-        // Si hay una ventana abierta, enfocarla
+      (async () => {
+        // Si la URL es absoluta y contiene una URL de preview de Vercel, reemplazarla por producción
+        if (urlToOpen.startsWith('http')) {
+          // Reemplazar cualquier URL de preview de Vercel por la URL de producción
+          urlToOpen = urlToOpen.replace(/https:\/\/book-store-[^/]+\.vercel\.app/, PRODUCTION_URL);
+        } else if (urlToOpen.startsWith('/')) {
+          // Si la URL es relativa, construir la URL absoluta usando la URL de producción
+          urlToOpen = PRODUCTION_URL + urlToOpen;
+        }
+        
+        console.log('[SW] Opening URL:', urlToOpen);
+        
+        const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        
+        // Si hay una ventana abierta con la misma URL, enfocarla
         for (let i = 0; i < clientList.length; i++) {
           const client = clientList[i];
           if (client.url === urlToOpen && 'focus' in client) {
@@ -186,7 +203,7 @@ const PUSH_NOTIFICATIONS_CODE = `
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }
-      })
+      })()
     );
   });
 `;

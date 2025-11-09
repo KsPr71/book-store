@@ -51,8 +51,9 @@ export async function POST(req: NextRequest) {
     console.log('📚 Datos del libro:', { book_id: book.book_id, title: book.title });
 
     // Obtener la URL base de producción
+    // Priorizar NEXT_PUBLIC_APP_URL, si no existe usar la URL de producción hardcodeada
+    // NO usar VERCEL_URL porque puede ser la URL de preview
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
                     'https://book-store-weld-one.vercel.app';
     
     // Preparar el payload de la notificación (mismo formato que send-test)

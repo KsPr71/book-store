@@ -77,7 +77,7 @@ if (!self.define) {
         return promise;
       })
     );
-  };;;;;;;;
+  };;;;;;;;;
 
   self.define = (depsNames, factory) => {
     const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
@@ -314,20 +314,18 @@ define(['/workbox-e43f5367'], (function (workbox) { 'use strict';
     // La URL puede ser absoluta (https://...) o relativa (/book/...)
     let urlToOpen = event.notification.data?.url || '/';
     
+    // URL de producción (siempre usar esta en lugar de preview)
+    const PRODUCTION_URL = 'https://book-store-weld-one.vercel.app';
+    
     event.waitUntil(
       (async () => {
-        // Si la URL es relativa, construir la URL absoluta usando el origen del service worker
-        if (urlToOpen.startsWith('/')) {
-          // Obtener el origen desde el scope del service worker o desde la primera ventana abierta
-          try {
-            const clientList = await clients.matchAll({ type: 'window' });
-            const origin = self.location.origin || 
-                          (clientList.length > 0 ? new URL(clientList[0].url).origin : 'https://book-store-weld-one.vercel.app');
-            urlToOpen = origin + urlToOpen;
-          } catch {
-            // Fallback a URL de producción
-            urlToOpen = 'https://book-store-weld-one.vercel.app' + urlToOpen;
-          }
+        // Si la URL es absoluta y contiene una URL de preview de Vercel, reemplazarla por producción
+        if (urlToOpen.startsWith('http')) {
+          // Reemplazar cualquier URL de preview de Vercel por la URL de producción
+          urlToOpen = urlToOpen.replace(/https:\/\/book-store-[^/]+\.vercel\.app/, PRODUCTION_URL);
+        } else if (urlToOpen.startsWith('/')) {
+          // Si la URL es relativa, construir la URL absoluta usando la URL de producción
+          urlToOpen = PRODUCTION_URL + urlToOpen;
         }
         
         console.log('[SW] Opening URL:', urlToOpen);
