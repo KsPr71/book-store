@@ -278,22 +278,51 @@ define(['/workbox-e43f5367'], (function (workbox) { 'use strict';
     }
 
     // Abrir la URL del libro o la página principal
-    const urlToOpen = event.notification.data?.url || '/';
+    // La URL puede ser absoluta (https://...) o relativa (/book/...)
+    let urlToOpen = event.notification.data?.url || '/';
     
     event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-        // Si hay una ventana abierta, enfocarla
-        for (let i = 0; i < clientList.length; i++) {
-          const client = clientList[i];
-          if (client.url === urlToOpen && 'focus' in client) {
-            return client.focus();
+      (async () => {
+        // Si la URL es relativa, construir la URL absoluta usando el origen del service worker
+        if (urlToOpen.startsWith('/')) {
+          // Obtener el origen desde el scope del service worker o desde la primera ventana abierta
+          try {
+            const clientList = await clients.matchAll({ type: 'window' });
+            const origin = self.location.origin || 
+                          (clientList.length > 0 ? new URL(clientList[0].url).origin : 'https://book-store-weld-one.vercel.app');
+            urlToOpen = origin + urlToOpen;
+          } catch {
+            // Fallback a URL de producción
+            urlToOpen = 'https://book-store-weld-one.vercel.app' + urlToOpen;
           }
         }
-        // Si no hay ventana abierta, abrir una nueva
+        
+        console.log('[SW] Opening URL:', urlToOpen);
+        
+        const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        
+        // Si hay una ventana abierta con la misma URL, enfocarla
+        for (let i = 0; i < clientList.length; i++) {
+          const client = clientList[i];
+          try {
+            const clientUrl = new URL(client.url);
+            const targetUrl = new URL(urlToOpen);
+            
+            // Comparar pathname para evitar problemas con query params
+            if (clientUrl.pathname === targetUrl.pathname && 'focus' in client) {
+              return client.focus();
+            }
+          } catch (e) {
+            // Si hay error al comparar URLs, continuar
+            console.log('[SW] Error comparing URLs:', e);
+          }
+        }
+        
+        // Si no hay ventana abierta, abrir una nueva con la URL absoluta
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }
-      })
+      })()
     );
   });
 

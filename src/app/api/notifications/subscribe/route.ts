@@ -5,10 +5,22 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const subscription = body.subscription;
+    const userAgent = req.headers.get('user-agent') || '';
+    const origin = req.headers.get('origin') || '';
 
     if (!subscription || !subscription.endpoint) {
       return NextResponse.json({ ok: false, error: 'Invalid subscription' }, { status: 400 });
     }
+
+    // Detectar tipo de dispositivo
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    const deviceType = isMobile ? 'mobile' : 'desktop';
+    
+    // Extraer información del endpoint para identificar el dispositivo
+    const endpointInfo = subscription.endpoint.includes('fcm.googleapis.com') ? 'android' : 
+                        subscription.endpoint.includes('wns') ? 'windows' : 
+                        subscription.endpoint.includes('updates.push.services.mozilla.com') ? 'firefox' : 
+                        'chrome';
 
     // Guardar la suscripción en Supabase
     // Primero verificar si ya existe
@@ -18,14 +30,21 @@ export async function POST(req: NextRequest) {
       .eq('endpoint', subscription.endpoint)
       .single();
 
+    const subscriptionData = {
+      endpoint: subscription.endpoint,
+      keys: subscription.keys,
+      device_type: deviceType,
+      user_agent: userAgent.substring(0, 200), // Limitar longitud
+      origin: origin,
+      endpoint_type: endpointInfo,
+      updated_at: new Date().toISOString(),
+    };
+
     if (existing) {
       // Actualizar la suscripción existente
       const { error } = await supabase
         .from('push_subscriptions')
-        .update({
-          keys: subscription.keys,
-          updated_at: new Date().toISOString(),
-        })
+        .update(subscriptionData)
         .eq('endpoint', subscription.endpoint);
 
       if (error) {
@@ -37,8 +56,8 @@ export async function POST(req: NextRequest) {
       const { error } = await supabase
         .from('push_subscriptions')
         .insert({
-          endpoint: subscription.endpoint,
-          keys: subscription.keys,
+          ...subscriptionData,
+          created_at: new Date().toISOString(),
         });
 
       if (error) {
@@ -52,7 +71,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    console.log('✅ Push subscription saved:', subscription.endpoint);
+    console.log(`✅ Push subscription saved: ${subscription.endpoint} (${deviceType})`);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('Error receiving subscription', err);

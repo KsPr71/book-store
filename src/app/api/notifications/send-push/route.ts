@@ -27,9 +27,12 @@ export async function POST(req: NextRequest) {
     webpush.setVapidDetails(contact, publicKey, privateKey);
 
     // Obtener todas las suscripciones activas
-    const { data: subscriptions, error: fetchError } = await supabase
+    // Filtrar para evitar duplicados: priorizar móviles sobre desktop
+    // Si hay múltiples suscripciones del mismo usuario, enviar solo a móvil
+    const { data: allSubscriptions, error: fetchError } = await supabase
       .from('push_subscriptions')
-      .select('endpoint, keys');
+      .select('endpoint, keys, device_type, user_agent')
+      .order('device_type', { ascending: true }); // mobile primero, luego desktop
 
     if (fetchError) {
       console.error('Error fetching subscriptions:', fetchError);
@@ -41,6 +44,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Error fetching subscriptions' }, { status: 500 });
     }
 
+    // Filtrar suscripciones para evitar duplicados
+    // Si hay múltiples suscripciones del mismo usuario (mismo user_agent), priorizar móvil
+    const subscriptionsMap = new Map<string, typeof allSubscriptions[0]>();
+    
+    if (allSubscriptions) {
+      for (const sub of allSubscriptions) {
+        // Usar user_agent como clave para identificar usuarios duplicados
+        const userKey = sub.user_agent || sub.endpoint;
+        
+        // Si ya existe una suscripción para este usuario
+        if (subscriptionsMap.has(userKey)) {
+          const existing = subscriptionsMap.get(userKey)!;
+          // Priorizar móvil sobre desktop
+          if (sub.device_type === 'mobile' && existing.device_type === 'desktop') {
+            subscriptionsMap.set(userKey, sub);
+          }
+          // Si ambas son del mismo tipo, mantener la más reciente (ya están ordenadas)
+        } else {
+          subscriptionsMap.set(userKey, sub);
+        }
+      }
+    }
+
+    const subscriptions = Array.from(subscriptionsMap.values());
+
     if (!subscriptions || subscriptions.length === 0) {
       console.log('⚠️ No push subscriptions found in database');
       return NextResponse.json({ ok: true, sent: 0, message: 'No hay suscripciones en la base de datos' });
@@ -49,16 +77,21 @@ export async function POST(req: NextRequest) {
     console.log(`📋 Encontradas ${subscriptions.length} suscripción(es) en la base de datos`);
     console.log('📚 Datos del libro:', { book_id: book.book_id, title: book.title });
 
+    // Obtener la URL base de producción
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
+                    'https://book-store-weld-one.vercel.app';
+    
     // Preparar el payload de la notificación (mismo formato que send-test)
     // Usar book_id como tag para que cada notificación sea única
     const payload = {
       title: '📚 Nuevo libro disponible',
       body: `${book.title} ha sido agregado al catálogo`,
-      icon: book.cover_image_url || '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
+      icon: book.cover_image_url || `${baseUrl}/icons/icon-192x192.png`,
+      badge: `${baseUrl}/icons/icon-192x192.png`,
       tag: `book-${book.book_id}`, // Tag único por libro para que no se agrupen
       data: {
-        url: `/book/${book.book_id}`,
+        url: `${baseUrl}/book/${book.book_id}`, // URL absoluta para evitar localhost
         bookId: book.book_id,
       },
     };
