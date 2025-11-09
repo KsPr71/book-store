@@ -10,6 +10,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// Cargar Workbox síncronamente al inicio (requerido por service workers)
+// Esto evita el error "importScripts() of new scripts after service worker installation is not allowed"
+importScripts('/workbox-e43f5367.js');
+
 
 // If the loader is already loaded, just stop.
 if (!self.define) {
@@ -21,30 +25,44 @@ if (!self.define) {
 
   const singleRequire = (uri, parentUri) => {
     uri = new URL(uri + ".js", parentUri).href;
+    // Si es Workbox y ya está cargado, registrarlo en el registry y devolverlo
+    if (uri.includes('workbox') && !registry[uri]) {
+      // Workbox ya está cargado síncronamente, crear una promesa que resuelva inmediatamente
+      // El objeto workbox se expone globalmente después de importScripts
+      registry[uri] = Promise.resolve(self.workbox || self);
+      return registry[uri];
+    }
     return registry[uri] || (
-      
-        new Promise(resolve => {
-          if ("document" in self) {
-            const script = document.createElement("script");
-            script.src = uri;
-            script.onload = resolve;
-            document.head.appendChild(script);
-          } else {
-            nextDefineUri = uri;
-            importScripts(uri);
+      new Promise((resolve, reject) => {
+        if ("document" in self) {
+          const script = document.createElement("script");
+          script.src = uri;
+          script.onload = resolve;
+          document.head.appendChild(script);
+        } else {
+          // En service workers, NO podemos usar importScripts() dentro de una Promise
+          // Workbox ya debería estar cargado síncronamente al inicio del archivo
+          if (uri.includes('workbox')) {
+            // Si llegamos aquí, Workbox debería estar ya registrado arriba
+            // Si no está, intentar registrarlo ahora
+            if (!registry[uri]) {
+              registry[uri] = Promise.resolve(self.workbox || self);
+            }
             resolve();
+          } else {
+            reject(new Error(`Cannot load ${uri} asynchronously in service worker. importScripts() must be called synchronously during service worker installation.`));
           }
-        })
-      
+        }
+      })
       .then(() => {
         let promise = registry[uri];
         if (!promise) {
-          throw new Error(`Module ${uri} didn’t register its module`);
+          throw new Error(`Module ${uri} didn't register its module`);
         }
         return promise;
       })
     );
-  };
+  };;;
 
   self.define = (depsNames, factory) => {
     const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;

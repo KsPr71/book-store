@@ -3,6 +3,7 @@
  * Se ejecuta después del build para asegurar que el código de push notifications esté presente
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
 
@@ -214,6 +215,107 @@ function injectPushNotifications() {
           return `define(['"/${workboxFile}"']`;
         }
       );
+    }
+
+    // CORREGIR: Cargar Workbox de forma síncrona al inicio para evitar el error de importScripts
+    // El problema es que el código actual intenta cargar Workbox de forma asíncrona dentro de una Promise
+    // Esto no está permitido en service workers. Necesitamos cargar Workbox síncronamente al inicio.
+    const workboxFileMatch = swContent.match(/define\(\[['"]\/(workbox-[^'"]+)['"]/);
+    if (workboxFileMatch) {
+      const workboxFile = workboxFileMatch[1];
+      console.log(`🔧 Corrigiendo carga asíncrona de Workbox: ${workboxFile}`);
+      
+      // Verificar si Workbox ya se carga síncronamente al inicio
+      if (!swContent.includes('// Cargar Workbox síncronamente')) {
+        // Insertar carga síncrona de Workbox justo después de los comentarios de copyright
+        const copyrightEnd = swContent.indexOf('*/') + 2;
+        if (copyrightEnd > 1) {
+          const workboxUrl = `/${workboxFile}.js`;
+          // Usar URL relativa para que funcione en cualquier dominio
+          const syncLoadCode = `\n// Cargar Workbox síncronamente al inicio (requerido por service workers)\n// Esto evita el error "importScripts() of new scripts after service worker installation is not allowed"\nimportScripts('${workboxUrl}');\n`;
+          swContent = swContent.slice(0, copyrightEnd) + syncLoadCode + swContent.slice(copyrightEnd);
+          console.log('✅ Carga síncrona de Workbox insertada al inicio');
+        }
+      }
+      
+      // Modificar singleRequire para que no intente cargar Workbox de forma asíncrona
+      // El problema está en que se intenta cargar Workbox dentro de una Promise
+      // Buscar el bloque completo de singleRequire manualmente
+      const singleRequireStart = swContent.indexOf('const singleRequire = (uri, parentUri) => {');
+      if (singleRequireStart !== -1) {
+        // Encontrar el cierre del bloque contando las llaves
+        let braceCount = 0;
+        let inString = false;
+        let stringChar = '';
+        let i = singleRequireStart;
+        while (i < swContent.length) {
+          const char = swContent[i];
+          if (!inString && (char === '"' || char === "'" || char === '`')) {
+            inString = true;
+            stringChar = char;
+          } else if (inString && char === stringChar && swContent[i - 1] !== '\\') {
+            inString = false;
+          } else if (!inString) {
+            if (char === '{') braceCount++;
+            if (char === '}') {
+              braceCount--;
+              if (braceCount === 0) {
+                // Encontramos el cierre
+                const singleRequireEnd = i + 1;
+                const oldSingleRequire = swContent.substring(singleRequireStart, singleRequireEnd);
+                
+                // Reemplazar con una versión que no intente cargar Workbox de forma asíncrona
+                const modifiedSingleRequire = `const singleRequire = (uri, parentUri) => {
+    uri = new URL(uri + ".js", parentUri).href;
+    // Si es Workbox y ya está cargado, registrarlo en el registry y devolverlo
+    if (uri.includes('workbox') && !registry[uri]) {
+      // Workbox ya está cargado síncronamente, crear una promesa que resuelva inmediatamente
+      // El objeto workbox se expone globalmente después de importScripts
+      registry[uri] = Promise.resolve(self.workbox || self);
+      return registry[uri];
+    }
+    return registry[uri] || (
+      new Promise((resolve, reject) => {
+        if ("document" in self) {
+          const script = document.createElement("script");
+          script.src = uri;
+          script.onload = resolve;
+          document.head.appendChild(script);
+        } else {
+          // En service workers, NO podemos usar importScripts() dentro de una Promise
+          // Workbox ya debería estar cargado síncronamente al inicio del archivo
+          if (uri.includes('workbox')) {
+            // Si llegamos aquí, Workbox debería estar ya registrado arriba
+            // Si no está, intentar registrarlo ahora
+            if (!registry[uri]) {
+              registry[uri] = Promise.resolve(self.workbox || self);
+            }
+            resolve();
+          } else {
+            reject(new Error(\`Cannot load \${uri} asynchronously in service worker. importScripts() must be called synchronously during service worker installation.\`));
+          }
+        }
+      })
+      .then(() => {
+        let promise = registry[uri];
+        if (!promise) {
+          throw new Error(\`Module \${uri} didn't register its module\`);
+        }
+        return promise;
+      })
+    );
+  };`;
+                
+                // Reemplazar el bloque antiguo con el nuevo
+                swContent = swContent.substring(0, singleRequireStart) + modifiedSingleRequire + swContent.substring(singleRequireEnd);
+                console.log('✅ singleRequire modificado para evitar carga asíncrona de Workbox');
+                break; // Salir del bucle una vez que encontramos y reemplazamos
+              }
+            }
+          }
+          i++;
+        }
+      }
     }
 
     // Verificar si el código ya está inyectado
