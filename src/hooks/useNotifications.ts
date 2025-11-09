@@ -18,57 +18,69 @@ interface WindowWithChannels extends Window {
   __bookCheckInterval?: NodeJS.Timeout;
 }
 
+interface NavigatorBadge {
+  setAppBadge?(count: number): Promise<void>;
+  clearAppBadge?(): Promise<void>;
+}
+
+interface PushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 export function useNotifications() {
   const [permission, setPermission] = useState<NotificationPermissionState>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
   const showNotificationRef = useRef<(book: NewBook) => void | undefined>(undefined);
+  const badgeCountRef = useRef<number>(0);
 
-  // Badge API - COMPLETAMENTE DESHABILITADO para evitar interferir con instalación de PWA
-  // Badge API - Intentaremos actualizar el badge usando la API de Badging si está disponible.
-  // Guardamos un contador en localStorage para persistir el número de notificaciones no leídas.
-  const BADGE_STORAGE_KEY = 'book_unread_count';
+  // Badge API - Habilitado para mostrar número de notificaciones
+  const updateAppBadge = useCallback(async (count?: number) => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
 
-  type BadgingNavigator = Navigator & {
-    setAppBadge?: (count?: number) => Promise<void>;
-    clearAppBadge?: () => Promise<void>;
-  };
+    // Obtener el contador actual si no se proporciona
+    const badgeCount = count !== undefined ? count : badgeCountRef.current;
 
-  const setBadgeCount = useCallback(async (count: number) => {
-    try {
-      const nav = navigator as BadgingNavigator;
-      if (typeof nav.setAppBadge === 'function') {
-        await nav.setAppBadge(count);
+    // Verificar si el Badge API está disponible
+    const navigatorBadge = navigator as Navigator & NavigatorBadge;
+    
+    if (navigatorBadge.setAppBadge) {
+      try {
+        if (badgeCount > 0) {
+          await navigatorBadge.setAppBadge(badgeCount);
+          console.log(`✅ Badge actualizado: ${badgeCount}`);
+        } else {
+          await navigatorBadge.clearAppBadge?.();
+          console.log('✅ Badge limpiado');
+        }
+      } catch (err) {
+        console.error('Error actualizando badge:', err);
       }
-      localStorage.setItem(BADGE_STORAGE_KEY, String(count));
-    } catch (err) {
-      // Falla silenciosa - API no soportada o error
-      console.debug('Badge API set failed', err);
+    } else {
+      console.log('Badge API no disponible en este navegador');
     }
   }, []);
+
+  const incrementBadge = useCallback(async () => {
+    badgeCountRef.current += 1;
+    // Guardar en localStorage para persistencia
+    localStorage.setItem('badgeCount', badgeCountRef.current.toString());
+    await updateAppBadge(badgeCountRef.current);
+  }, [updateAppBadge]);
 
   const clearBadge = useCallback(async () => {
-    try {
-      const nav = navigator as BadgingNavigator;
-      if (typeof nav.clearAppBadge === 'function') {
-        await nav.clearAppBadge();
-      }
-      localStorage.removeItem(BADGE_STORAGE_KEY);
-    } catch (err) {
-      console.debug('Badge API clear failed', err);
-    }
-  }, []);
-
-  const updateAppBadge = useCallback(async (increment = 1) => {
-    try {
-      const current = parseInt(localStorage.getItem(BADGE_STORAGE_KEY) || '0', 10) || 0;
-      const next = current + increment;
-      await setBadgeCount(next);
-    } catch (err) {
-      console.debug('Error updating badge count', err);
-    }
-  }, [setBadgeCount]);
+    badgeCountRef.current = 0;
+    localStorage.removeItem('badgeCount');
+    await updateAppBadge(0);
+  }, [updateAppBadge]);
 
   // Mostrar notificación
   const showNotification = useCallback((book: NewBook) => {
@@ -91,22 +103,46 @@ export function useNotifications() {
       window.focus();
       window.location.href = `/book/${book.book_id}`;
       notification.close();
+      // Limpiar badge cuando el usuario hace clic en la notificación
+      clearBadge();
     };
 
-    // Badge completamente deshabilitado para evitar interferir con instalación de PWA
+    // Incrementar badge cuando se muestra una notificación
+    incrementBadge();
 
     // Cerrar automáticamente después de 5 segundos
     setTimeout(() => {
       notification.close();
     }, 5000);
-    // Incrementar badge cuando se muestra notificación
-    updateAppBadge(1);
-  }, [updateAppBadge]);
+  }, [incrementBadge, clearBadge]);
 
   // Guardar referencia para usar en otros callbacks
   useEffect(() => {
     showNotificationRef.current = showNotification;
   }, [showNotification]);
+
+  // Escuchar mensajes del service worker
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
+        // Limpiar badge cuando se hace clic en una notificación desde el SW
+        clearBadge();
+      } else if (event.data && event.data.type === 'PUSH_RECEIVED') {
+        // Incrementar badge cuando se recibe un push (si la app está abierta)
+        incrementBadge();
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+    };
+  }, [clearBadge, incrementBadge]);
 
   // Verificar permisos y estado de suscripción al cargar
   useEffect(() => {
@@ -121,18 +157,42 @@ export function useNotifications() {
     // Verificar si hay una suscripción guardada
     const subscription = localStorage.getItem('bookNotificationsEnabled');
     setIsSubscribed(subscription === 'true' && currentPermission === 'granted');
-  }, []);
+
+    // Cargar push subscription guardada
+    const savedPushSub = localStorage.getItem('pushSubscription');
+    if (savedPushSub) {
+      try {
+        setPushSubscription(JSON.parse(savedPushSub));
+      } catch (e) {
+        console.error('Error parsing saved push subscription:', e);
+      }
+    }
+
+    // Restaurar badge count desde localStorage
+    const savedBadgeCount = localStorage.getItem('badgeCount');
+    if (savedBadgeCount) {
+      const count = parseInt(savedBadgeCount, 10);
+      if (!isNaN(count) && count > 0) {
+        badgeCountRef.current = count;
+        // Actualizar badge solo si la app está instalada (PWA)
+        // Verificar si está en modo standalone
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+        if (isStandalone) {
+          updateAppBadge(count);
+        }
+      }
+    }
+  }, [updateAppBadge]);
 
   // Suscribirse a nuevos libros usando Supabase Realtime
   const subscribeToNewBooks = useCallback(async () => {
-    // Implementación con reintentos si el canal devuelve CHANNEL_ERROR
-    const maxRetries = 3;
-    let attempt = 0;
-    const lastCheckDate = localStorage.getItem('lastBookCheckDate');
-    const lastCheck = lastCheckDate ? new Date(lastCheckDate) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    try {
+      // Obtener la fecha del último libro visto
+      const lastCheckDate = localStorage.getItem('lastBookCheckDate');
+      const lastCheck = lastCheckDate ? new Date(lastCheckDate) : new Date(Date.now() - 24 * 60 * 60 * 1000); // Últimas 24 horas por defecto
 
-    const createChannel = () => {
-      return supabase
+      // Suscribirse a cambios en la tabla books
+      const channel = supabase
         .channel('new-books-notifications')
         .on(
           'postgres_changes',
@@ -143,219 +203,63 @@ export function useNotifications() {
             filter: `status=eq.available`,
           },
           (payload) => {
-            try {
-              const newBook = payload.new as NewBook;
-              const bookCreatedAt = new Date(newBook.created_at);
-              if (bookCreatedAt > lastCheck && showNotificationRef.current) {
-                showNotificationRef.current(newBook);
-                localStorage.setItem('lastBookCheckDate', new Date().toISOString());
-              }
-            } catch (e) {
-              console.error('Error handling realtime payload', e);
+            const newBook = payload.new as NewBook;
+            const bookCreatedAt = new Date(newBook.created_at);
+
+            // Solo notificar si el libro es más reciente que la última verificación
+            if (bookCreatedAt > lastCheck && showNotificationRef.current) {
+              showNotificationRef.current(newBook);
+              // Actualizar la fecha de última verificación
+              localStorage.setItem('lastBookCheckDate', new Date().toISOString());
+              // El badge se actualiza automáticamente en showNotification
             }
           }
-        );
-    };
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Suscrito a notificaciones de nuevos libros');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('❌ Error en la suscripción a notificaciones');
+            setError('Error al conectar con el servidor de notificaciones');
+          }
+        });
 
-  const subscribeWithRetry = async (): Promise<RealtimeChannel | void> => {
-      while (attempt < maxRetries) {
-        attempt += 1;
-        const channel = createChannel();
+      // Guardar el canal para poder cancelarlo después
+      (window as WindowWithChannels).__supabaseChannel = channel;
+
+      // También verificar periódicamente nuevos libros (cada 5 minutos) como respaldo
+      const checkInterval = setInterval(async () => {
         try {
-          const sub = await channel.subscribe();
-          // supabase channel.subscribe may return an object or set status via callback; check returned status
-          // Listen for status updates via the object's state if available
-          if (sub && (sub as unknown as { status?: string }).status === 'SUBSCRIBED') {
-            console.log('✅ Suscrito a notificaciones de nuevos libros (attempt', attempt, ')');
-            (window as WindowWithChannels).__supabaseChannel = channel;
-            break;
-          }
-
-          // If subscribe didn't throw but we don't have SUBSCRIBED, attach a small listener for channel status
-          channel.subscribe((status: string) => {
-            if (status === 'SUBSCRIBED') {
-              console.log('✅ Suscrito a notificaciones de nuevos libros');
-              (window as WindowWithChannels).__supabaseChannel = channel;
-            } else if (status === 'CHANNEL_ERROR') {
-              console.error('❌ Error en la suscripción a notificaciones (status CHANNEL_ERROR)');
-              setError('Error al conectar con el servidor de notificaciones');
+          const lastCheck = localStorage.getItem('lastBookCheckDate');
+          const response = await fetch(
+            `/api/notifications/check-new-books?lastCheckDate=${lastCheck || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}`
+          );
+          
+          if (response.ok) {
+            const data = await response.json() as { newBooks: NewBook[]; lastCheck: string };
+            if (data.newBooks && data.newBooks.length > 0 && showNotificationRef.current) {
+              // Mostrar notificación para cada nuevo libro
+              data.newBooks.forEach((book) => {
+                showNotificationRef.current?.(book);
+              });
+              localStorage.setItem('lastBookCheckDate', data.lastCheck);
+              // El badge se actualiza automáticamente en showNotification para cada libro
             }
-          });
-
-          // If we reached here assume subscription object is acceptable
-          (window as WindowWithChannels).__supabaseChannel = channel;
-          break;
+          }
         } catch (err) {
-          console.error('Suscripción intento', attempt, 'falló:', err);
-          setError('Error al conectar con el servidor de notificaciones — reintentando');
-          // Exponential backoff
-          const wait = Math.min(500 * Math.pow(2, attempt - 1), 5000);
-          await new Promise((r) => setTimeout(r, wait));
-          if (attempt >= maxRetries) {
-            console.error('Máximo de reintentos alcanzado para suscripción realtime');
-            setError('No se pudo conectar al servidor de notificaciones');
-            break;
-          }
+          console.error('Error al verificar nuevos libros:', err);
         }
-      }
-    };
+      }, 5 * 60 * 1000); // Cada 5 minutos
 
-    // Start periodic polling backup (every 5 minutes) even if realtime hasn't connected yet
-    const checkInterval = setInterval(async () => {
-      try {
-        const last = localStorage.getItem('lastBookCheckDate');
-        const response = await fetch(
-          `/api/notifications/check-new-books?lastCheckDate=${last || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}`
-        );
+      // Guardar el intervalo para poder cancelarlo después
+      (window as WindowWithChannels).__bookCheckInterval = checkInterval;
 
-        if (response.ok) {
-          const data = await response.json() as { newBooks: NewBook[]; lastCheck: string };
-          if (data.newBooks && data.newBooks.length > 0 && showNotificationRef.current) {
-            data.newBooks.forEach((book) => {
-              showNotificationRef.current?.(book);
-            });
-            localStorage.setItem('lastBookCheckDate', data.lastCheck);
-          }
-        }
-      } catch (err) {
-        console.error('Error al verificar nuevos libros (polling):', err);
-      }
-    }, 5 * 60 * 1000);
-
-    (window as WindowWithChannels).__bookCheckInterval = checkInterval;
-
-    // Kick off the subscribe attempts
-    await subscribeWithRetry();
-    return (window as WindowWithChannels).__supabaseChannel;
-  }, []);
-
-  // --- PUSH API helpers ---
-  const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
-
-  const ensureServiceWorkerRegistered = useCallback(async () => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
-    try {
-      // Intentar registrar sw.js si no está registrado
-      // Si ya está, navigator.serviceWorker.ready devolverá el registration
-      const registration = await navigator.serviceWorker.ready;
-      return registration;
+      return channel;
     } catch (err) {
-      // navigator.serviceWorker.ready puede fallar si no hay SW
-      console.debug('navigator.serviceWorker.ready failed', err);
-      try {
-        const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-        return reg;
-      } catch (e) {
-        console.debug('SW register failed', e);
-        return null;
-      }
+      console.error('Error al suscribirse a nuevos libros:', err);
+      setError('Error al configurar las notificaciones');
     }
   }, []);
-
-  const getVapidKey = useCallback(async (): Promise<string | null> => {
-    try {
-      const res = await fetch('/api/notifications/vapid');
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.publicKey as string | null;
-    } catch (err) {
-      console.error('Error fetching VAPID key', err);
-      return null;
-    }
-  }, []);
-
-  const subscribeToPush = useCallback(async (): Promise<boolean> => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setError('Push no soportado en este navegador');
-      return false;
-    }
-
-    const registration = await ensureServiceWorkerRegistered();
-    if (!registration) {
-      setError('No hay Service Worker disponible para Push');
-      return false;
-    }
-
-    const publicKey = await getVapidKey();
-    if (!publicKey) {
-      setError('No se pudo obtener la clave VAPID');
-      return false;
-    }
-
-    try {
-      // Convertir clave VAPID (base64url) a Uint8Array
-      const urlBase64ToUint8Array = (base64String: string) => {
-        const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const rawData = atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) {
-          outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
-      };
-
-      const applicationServerKey = urlBase64ToUint8Array(publicKey);
-
-      const sub = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey,
-      });
-
-      setPushSubscription(sub);
-
-      // Enviar subscription serializada al backend para guardar
-  type PushSubLike = PushSubscription & { toJSON?: () => Record<string, unknown> };
-  const subLike = sub as PushSubLike;
-  const subPayload = subLike.toJSON ? subLike.toJSON() : (sub as unknown as Record<string, unknown>);
-      await fetch('/api/notifications/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: subPayload }),
-      });
-
-      return true;
-    } catch (err) {
-      console.error('Error subscribing to push', err);
-      const message = err instanceof Error ? err.message : 'Error al suscribirse a Push';
-      setError(message);
-      return false;
-    }
-  }, [ensureServiceWorkerRegistered, getVapidKey]);
-
-  const unsubscribePush = useCallback(async (): Promise<boolean> => {
-    try {
-      const registration = await ensureServiceWorkerRegistered();
-      if (!registration) return false;
-      const sub = await registration.pushManager.getSubscription();
-      if (!sub) return true;
-      await sub.unsubscribe();
-      setPushSubscription(null);
-      // Informar al backend
-      await fetch('/api/notifications/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) });
-      return true;
-    } catch (err) {
-      console.error('Error unsubscribing', err);
-      return false;
-    }
-  }, [ensureServiceWorkerRegistered]);
-
-  // Inicializar estado de Push subscription
-  useEffect(() => {
-    (async () => {
-      if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
-      try {
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (registration) {
-          const sub = await registration.pushManager.getSubscription();
-          if (sub) setPushSubscription(sub);
-        }
-      } catch (err) {
-        console.debug('Error checking existing push subscription', err);
-      }
-    })();
-  }, []);
-
 
   // Solicitar permisos de notificación
   const requestPermission = useCallback(async (): Promise<boolean> => {
@@ -404,6 +308,98 @@ export function useNotifications() {
     }
   }, [subscribeToNewBooks]);
 
+  // Suscribirse a Push Notifications
+  const subscribeToPush = useCallback(async (): Promise<boolean> => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      console.warn('Push notifications no están disponibles en este navegador');
+      return false;
+    }
+
+    if (Notification.permission !== 'granted') {
+      console.warn('Permisos de notificación no concedidos');
+      return false;
+    }
+
+    try {
+      // Obtener el service worker registration
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Obtener la clave pública VAPID
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidPublicKey) {
+        console.error('VAPID_PUBLIC_KEY no está configurada');
+        return false;
+      }
+
+      // Convertir la clave VAPID a Uint8Array
+      const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
+      // Suscribirse a push notifications
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+
+      // Convertir la suscripción a un formato serializable
+      const subscriptionData: PushSubscription = {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: arrayBufferToBase64(subscription.getKey('p256dh')!),
+          auth: arrayBufferToBase64(subscription.getKey('auth')!),
+        },
+      };
+
+      // Guardar localmente
+      setPushSubscription(subscriptionData);
+      localStorage.setItem('pushSubscription', JSON.stringify(subscriptionData));
+
+      // Enviar al servidor
+      const response = await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: subscriptionData }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al registrar la suscripción en el servidor');
+      }
+
+      console.log('✅ Suscrito a push notifications');
+      return true;
+    } catch (err) {
+      console.error('Error al suscribirse a push notifications:', err);
+      setError('Error al configurar las notificaciones push');
+      return false;
+    }
+  }, []);
+
+  // Desuscribirse de Push Notifications
+  const unsubscribePush = useCallback(async (): Promise<void> => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        await subscription.unsubscribe();
+        console.log('✅ Desuscrito de push notifications');
+      }
+
+      // Limpiar del servidor
+      if (pushSubscription) {
+        await fetch('/api/notifications/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: pushSubscription.endpoint }),
+        });
+      }
+
+      setPushSubscription(null);
+      localStorage.removeItem('pushSubscription');
+    } catch (err) {
+      console.error('Error al desuscribirse de push notifications:', err);
+    }
+  }, [pushSubscription]);
+
   // Desactivar notificaciones
   const unsubscribe = useCallback(() => {
     localStorage.removeItem('bookNotificationsEnabled');
@@ -422,7 +418,10 @@ export function useNotifications() {
       clearInterval(interval);
       delete (window as WindowWithChannels).__bookCheckInterval;
     }
-  }, []);
+
+    // Desuscribirse de push notifications
+    unsubscribePush();
+  }, [unsubscribePush]);
 
   // Inicializar suscripción si está habilitada
   useEffect(() => {
@@ -456,9 +455,29 @@ export function useNotifications() {
     showNotification,
     clearBadge,
     updateAppBadge,
-    // Push helpers
     subscribeToPush,
     unsubscribePush,
     pushSubscription,
   };
+}
+
+// Funciones auxiliares para convertir claves VAPID
+function urlBase64ToUint8Array(base64String: string): BufferSource {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
 }

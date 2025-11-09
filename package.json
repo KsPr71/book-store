@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "npm run generate-icons && next build",
+    "build": "npm run generate-icons && next build && node scripts/inject-push-notifications.js",
     "start": "next start",
     "lint": "eslint",
-    "generate-icons": "node scripts/generate-icons.js"
+    "generate-icons": "node scripts/generate-icons.js",
+    "inject-push": "node scripts/inject-push-notifications.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

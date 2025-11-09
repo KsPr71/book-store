@@ -32,12 +32,27 @@ export function ServiceWorkerRegister() {
           return;
         }
 
-        // Intentar registrar el service worker
-        const registration = await navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
-        });
+              // Intentar registrar el service worker principal (Workbox)
+              const registration = await navigator.serviceWorker.register("/sw.js", {
+                scope: "/",
+              });
 
-        console.log("✅ Service Worker registrado:", registration.scope);
+              console.log("✅ Service Worker registrado:", registration.scope);
+
+              // También registrar el service worker de push notifications si existe
+              // (solo en desarrollo, en producción next-pwa maneja todo)
+              if (process.env.NODE_ENV === 'development') {
+                try {
+                  const pushSwResponse = await fetch("/sw-push.js", { method: "HEAD" });
+                  if (pushSwResponse.ok) {
+                    // El código de push notifications se puede agregar al service worker principal
+                    // o usar un service worker adicional
+                    console.log("✅ Service Worker de push notifications disponible");
+                  }
+                } catch (e) {
+                  // Silencioso si no existe
+                }
+              }
       } catch (error) {
         // Silenciar errores para no interferir con la instalación
         if (process.env.NODE_ENV !== "development") {

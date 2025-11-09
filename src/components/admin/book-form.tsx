@@ -122,6 +122,42 @@ export function BookForm() {
       setSuccess(true);
       refreshBooks();
       
+      // Enviar push notifications a los usuarios suscritos
+      if (bookResult.data.status === 'available') {
+        try {
+          console.log('📤 Enviando push notifications para libro:', bookResult.data.title);
+          const response = await fetch('/api/notifications/send-push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              book: {
+                book_id: bookResult.data.book_id,
+                title: bookResult.data.title,
+                cover_image_url: bookResult.data.cover_image_url,
+              },
+            }),
+          });
+          
+          const result = await response.json();
+          console.log('📬 Respuesta del servidor:', result);
+          
+          if (result.ok) {
+            if (result.sent > 0) {
+              console.log(`✅ Push notifications enviadas a ${result.sent} usuario(s)`);
+            } else {
+              console.warn('⚠️ No hay usuarios suscritos a push notifications');
+            }
+          } else {
+            console.error('❌ Error en el servidor:', result.error);
+          }
+        } catch (err) {
+          console.error('❌ Error enviando push notifications:', err);
+          // No fallar la creación del libro si falla el envío de notificaciones
+        }
+      } else {
+        console.log('ℹ️ Libro creado con estado:', bookResult.data.status, '- No se envían notificaciones');
+      }
+      
       // Resetear formulario
       setTimeout(() => {
         setFormData({

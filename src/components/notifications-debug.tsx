@@ -109,6 +109,58 @@ export default function NotificationsDebug() {
           onClick={() => showNotification?.({ book_id: 'debug-1', title: 'Libro debug', created_at: new Date().toISOString() })}
           className="px-3 py-1 rounded bg-pink-600 text-white"
         >Mostrar notificación</button>
+        <button
+          onClick={async () => {
+            if (Notification.permission !== 'granted') {
+              alert('Permisos de notificación no concedidos. Activa las notificaciones primero.');
+              return;
+            }
+            
+            // Probar notificación directa del navegador
+            try {
+              const notification = new Notification('🧪 Prueba de Notificación', {
+                body: 'Si ves esto, las notificaciones del navegador funcionan',
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-192x192.png',
+                tag: 'test-notification',
+                requireInteraction: true,
+              });
+              
+              notification.onclick = () => {
+                window.focus();
+                notification.close();
+              };
+              
+              console.log('✅ Notificación del navegador mostrada');
+            } catch (err) {
+              console.error('❌ Error mostrando notificación:', err);
+              alert('Error: ' + String(err));
+            }
+          }}
+          className="px-3 py-1 rounded bg-purple-600 text-white ml-2"
+        >Probar notificación navegador</button>
+        <button
+          onClick={async () => {
+            try {
+              const registration = await navigator.serviceWorker.ready;
+              // Usar tipo extendido para incluir vibrate
+              const options: NotificationOptions & { vibrate?: number[] } = {
+                body: 'Si ves esto, el service worker puede mostrar notificaciones',
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-192x192.png',
+                tag: 'test-sw-notification',
+                requireInteraction: true,
+                vibrate: [200, 100, 200],
+              };
+              await registration.showNotification('🧪 Prueba desde Service Worker', options);
+              console.log('✅ Notificación desde SW mostrada');
+            } catch (err) {
+              console.error('❌ Error mostrando notificación desde SW:', err);
+              alert('Error: ' + String(err));
+            }
+          }}
+          className="px-3 py-1 rounded bg-orange-600 text-white ml-2"
+        >Probar notificación SW</button>
       </div>
     </div>
   );

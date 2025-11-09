@@ -1,102 +1,15 @@
 /**
- * Copyright 2018 Google Inc. All Rights Reserved.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Script para inyectar código de push notifications en el service worker generado por next-pwa
+ * Se ejecuta después del build para asegurar que el código de push notifications esté presente
  */
 
-// If the loader is already loaded, just stop.
-if (!self.define) {
-  let registry = {};
+const fs = require('fs');
+const path = require('path');
 
-  // Used for `eval` and `importScripts` where we can't get script URL by other means.
-  // In both cases, it's safe to use a global var because those functions are synchronous.
-  let nextDefineUri;
+const SW_PATH = path.join(__dirname, '../public/sw.js');
 
-  const singleRequire = (uri, parentUri) => {
-    uri = new URL(uri + ".js", parentUri).href;
-    return registry[uri] || (
-      
-        new Promise(resolve => {
-          if ("document" in self) {
-            const script = document.createElement("script");
-            script.src = uri;
-            script.onload = resolve;
-            document.head.appendChild(script);
-          } else {
-            nextDefineUri = uri;
-            importScripts(uri);
-            resolve();
-          }
-        })
-      
-      .then(() => {
-        let promise = registry[uri];
-        if (!promise) {
-          throw new Error(`Module ${uri} didn’t register its module`);
-        }
-        return promise;
-      })
-    );
-  };
-
-  self.define = (depsNames, factory) => {
-    const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
-    if (registry[uri]) {
-      // Module is already loading or loaded.
-      return;
-    }
-    let exports = {};
-    const require = depUri => singleRequire(depUri, uri);
-    const specialDeps = {
-      module: { uri },
-      exports,
-      require
-    };
-    registry[uri] = Promise.all(depsNames.map(
-      depName => specialDeps[depName] || require(depName)
-    )).then(deps => {
-      factory(...deps);
-      return exports;
-    });
-  };
-}
-define(['./workbox-e43f5367'], (function (workbox) { 'use strict';
-
-  importScripts();
-  self.skipWaiting();
-  workbox.clientsClaim();
-  workbox.registerRoute("/", new workbox.NetworkFirst({
-    "cacheName": "start-url",
-    plugins: [{
-      cacheWillUpdate: async ({
-        request,
-        response,
-        event,
-        state
-      }) => {
-        if (response && response.type === 'opaqueredirect') {
-          return new Response(response.body, {
-            status: 200,
-            statusText: 'OK',
-            headers: response.headers
-          });
-        }
-        return response;
-      }
-    }]
-  }), 'GET');
-  workbox.registerRoute(/.*/i, new workbox.NetworkOnly({
-    "cacheName": "dev",
-    plugins: []
-  }), 'GET');
-
+// Código de push notifications a inyectar
+const PUSH_NOTIFICATIONS_CODE = `
   // Push Notifications
   self.addEventListener('push', (event) => {
     console.log('[SW] Push event received:', event);
@@ -275,5 +188,54 @@ define(['./workbox-e43f5367'], (function (workbox) { 'use strict';
       })
     );
   });
+`;
 
-}));
+function injectPushNotifications() {
+  try {
+    // Verificar si el archivo existe
+    if (!fs.existsSync(SW_PATH)) {
+      console.warn('⚠️  sw.js no encontrado. Ejecuta "npm run build" primero.');
+      return;
+    }
+
+    // Leer el contenido actual
+    let swContent = fs.readFileSync(SW_PATH, 'utf8');
+
+    // Verificar si el código ya está inyectado
+    if (swContent.includes('Push Notifications')) {
+      console.log('✅ Código de push notifications ya está presente en sw.js');
+      return;
+    }
+
+    // Buscar el final del código de Workbox (antes del cierre del último bloque)
+    // El código de Workbox termina con })); o similar
+    const lastBraceIndex = swContent.lastIndexOf('}));');
+    
+    if (lastBraceIndex === -1) {
+      console.error('❌ No se pudo encontrar el final del código de Workbox');
+      return;
+    }
+
+    // Inyectar el código antes del cierre
+    const beforeClose = swContent.substring(0, lastBraceIndex);
+    const afterClose = swContent.substring(lastBraceIndex);
+    
+    swContent = beforeClose + PUSH_NOTIFICATIONS_CODE + '\n\n' + afterClose;
+
+    // Escribir el archivo actualizado
+    fs.writeFileSync(SW_PATH, swContent, 'utf8');
+    
+    console.log('✅ Código de push notifications inyectado exitosamente en sw.js');
+  } catch (error) {
+    console.error('❌ Error inyectando código de push notifications:', error);
+    process.exit(1);
+  }
+}
+
+// Ejecutar solo si se llama directamente
+if (require.main === module) {
+  injectPushNotifications();
+}
+
+module.exports = injectPushNotifications;
+
