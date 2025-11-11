@@ -77,7 +77,7 @@ if (!self.define) {
         return promise;
       })
     );
-  };;;;;;;;;
+  };;;;;;;;;;
 
   self.define = (depsNames, factory) => {
     const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
@@ -245,37 +245,82 @@ define(['/workbox-e43f5367'], (function (workbox) { 'use strict';
     // Usar waitUntil para mantener el service worker activo
     event.waitUntil(showNotificationPromise);
 
+    // Incrementar badge count y enviar mensaje a los clientes
+    // El badge debe actualizarse desde el cliente, pero guardamos el count en IndexedDB
+    // para que esté disponible incluso cuando la app está cerrada
     event.waitUntil(
-      self.clients.matchAll().then((clientList) => {
-        console.log('[SW] Sending message to', clientList.length, 'client(s)');
-        clientList.forEach((client) => {
-          client.postMessage({
-            type: 'PUSH_RECEIVED',
-            data: notificationData,
+      (async () => {
+        try {
+          // Guardar badge count en IndexedDB para persistencia
+          const dbName = 'BookStoreDB';
+          const dbVersion = 1;
+          const storeName = 'badgeCount';
+          
+          // Abrir IndexedDB
+          const db = await new Promise((resolve, reject) => {
+            const request = indexedDB.open(dbName, dbVersion);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+            request.onupgradeneeded = (event) => {
+              const db = event.target.result;
+              if (!db.objectStoreNames.contains(storeName)) {
+                db.createObjectStore(storeName);
+              }
+            };
           });
+          
+          // Leer badge count actual
+          const currentCount = await new Promise((resolve, reject) => {
+            const transaction = db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.get('count');
+            request.onsuccess = () => resolve(request.result || 0);
+            request.onerror = () => reject(request.error);
+          });
+          
+          // Incrementar badge count
+          const newCount = currentCount + 1;
+          
+          // Guardar nuevo count
+          await new Promise((resolve, reject) => {
+            const transaction = db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.put(newCount, 'count');
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+          });
+          
+          console.log('[SW] ✅ Badge count guardado en IndexedDB:', newCount);
+          db.close();
+        } catch (err) {
+          console.error('[SW] ❌ Error guardando badge count en IndexedDB:', err);
+          // Continuar aunque falle IndexedDB
+        }
+        
+        // Enviar mensaje a los clientes para que actualicen el badge
+        const clientList = await self.clients.matchAll({ includeUncontrolled: true });
+        console.log('[SW] 📤 Enviando mensaje PUSH_RECEIVED a', clientList.length, 'cliente(s)');
+        console.log('[SW] 📋 Datos de notificación a enviar:', notificationData);
+        
+        // Enviar mensaje a todos los clientes (incluso si están en segundo plano)
+        clientList.forEach((client) => {
+          try {
+            client.postMessage({
+              type: 'PUSH_RECEIVED',
+              data: notificationData,
+            });
+            console.log('[SW] ✅ Mensaje enviado a cliente:', client.url);
+          } catch (err) {
+            console.error('[SW] ❌ Error enviando mensaje a cliente:', err);
+          }
         });
         
-        // Incrementar badge en el service worker también
-        // Esto funciona incluso cuando la app está cerrada
-        if (self.registration && self.registration.setAppBadge) {
-          // Obtener el contador actual del badge o usar 1
-          self.registration.getAppBadge()
-            .then((currentCount) => {
-              const newCount = (currentCount || 0) + 1;
-              return self.registration.setAppBadge(newCount);
-            })
-            .then(() => {
-              console.log('[SW] ✅ Badge incrementado desde service worker');
-            })
-            .catch((err) => {
-              console.log('[SW] Error setting badge:', err);
-              // Si getAppBadge no está disponible, intentar solo setAppBadge
-              self.registration.setAppBadge(1).catch(() => {
-                console.log('[SW] Badge API no disponible');
-              });
-            });
+        // Si no hay clientes abiertos, el badge se actualizará cuando se abra la app
+        // leyendo el valor desde IndexedDB
+        if (clientList.length === 0) {
+          console.log('[SW] ⚠️ No hay clientes abiertos, el badge se actualizará cuando se abra la app desde IndexedDB');
         }
-      })
+      })()
     );
   });
 
@@ -286,21 +331,21 @@ define(['/workbox-e43f5367'], (function (workbox) { 'use strict';
     
     event.notification.close();
 
-    // Limpiar badge cuando se hace clic en la notificación
-    if (self.registration && self.registration.clearAppBadge) {
-      self.registration.clearAppBadge().catch((err) => {
-        console.log('[SW] Error clearing badge:', err);
-      });
-    }
-
-    // Enviar mensaje a los clientes para que también limpien el badge
+    // Enviar mensaje a los clientes para que limpien el badge
+    // El badge debe limpiarse desde el cliente, no desde el service worker
     event.waitUntil(
-      clients.matchAll().then((clientList) => {
+      clients.matchAll({ includeUncontrolled: true }).then((clientList) => {
+        console.log('[SW] 📤 Enviando mensaje NOTIFICATION_CLICKED a', clientList.length, 'cliente(s)');
         clientList.forEach((client) => {
-          client.postMessage({
-            type: 'NOTIFICATION_CLICKED',
-            data: event.notification.data,
-          });
+          try {
+            client.postMessage({
+              type: 'NOTIFICATION_CLICKED',
+              data: event.notification.data,
+            });
+            console.log('[SW] ✅ Mensaje NOTIFICATION_CLICKED enviado a cliente:', client.url);
+          } catch (err) {
+            console.error('[SW] ❌ Error enviando mensaje a cliente:', err);
+          }
         });
       })
     );

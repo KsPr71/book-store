@@ -71,14 +71,78 @@ export function useNotifications() {
 
   const incrementBadge = useCallback(async () => {
     badgeCountRef.current += 1;
-    // Guardar en localStorage para persistencia
+    // Guardar en localStorage y IndexedDB para persistencia
     localStorage.setItem('badgeCount', badgeCountRef.current.toString());
+    
+    // También guardar en IndexedDB (para que el service worker pueda leerlo)
+    try {
+      const dbName = 'BookStoreDB';
+      const dbVersion = 1;
+      const storeName = 'badgeCount';
+      
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName);
+          }
+        };
+      });
+      
+      const transaction = db.transaction([storeName], 'readwrite');
+      const store = transaction.objectStore(storeName);
+      await new Promise<void>((resolve, reject) => {
+        const request = store.put(badgeCountRef.current, 'count');
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+      
+      db.close();
+    } catch (err) {
+      console.warn('⚠️ Error guardando badge count en IndexedDB:', err);
+    }
+    
     await updateAppBadge(badgeCountRef.current);
   }, [updateAppBadge]);
 
   const clearBadge = useCallback(async () => {
     badgeCountRef.current = 0;
     localStorage.removeItem('badgeCount');
+    
+    // También limpiar IndexedDB
+    try {
+      const dbName = 'BookStoreDB';
+      const dbVersion = 1;
+      const storeName = 'badgeCount';
+      
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName);
+          }
+        };
+      });
+      
+      const transaction = db.transaction([storeName], 'readwrite');
+      const store = transaction.objectStore(storeName);
+      await new Promise<void>((resolve, reject) => {
+        const request = store.put(0, 'count');
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+      
+      db.close();
+    } catch (err) {
+      console.warn('⚠️ Error limpiando badge count en IndexedDB:', err);
+    }
+    
     await updateAppBadge(0);
   }, [updateAppBadge]);
 
@@ -212,20 +276,75 @@ export function useNotifications() {
       }
     }
 
-    // Restaurar badge count desde localStorage
-    const savedBadgeCount = localStorage.getItem('badgeCount');
-    if (savedBadgeCount) {
-      const count = parseInt(savedBadgeCount, 10);
-      if (!isNaN(count) && count > 0) {
-        badgeCountRef.current = count;
+    // Restaurar badge count desde IndexedDB (preferido) o localStorage
+    const restoreBadgeCount = async () => {
+      try {
+        // Intentar leer desde IndexedDB primero (más confiable, funciona desde service worker)
+        const dbName = 'BookStoreDB';
+        const dbVersion = 1;
+        const storeName = 'badgeCount';
+        
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open(dbName, dbVersion);
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result);
+          request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result;
+            if (!db.objectStoreNames.contains(storeName)) {
+              db.createObjectStore(storeName);
+            }
+          };
+        });
+        
+        const countFromDB = await new Promise<number>((resolve, reject) => {
+          const transaction = db.transaction([storeName], 'readonly');
+          const store = transaction.objectStore(storeName);
+          const request = store.get('count');
+          request.onsuccess = () => resolve(request.result || 0);
+          request.onerror = () => reject(request.error);
+        });
+        
+        db.close();
+        
+        if (countFromDB > 0) {
+          badgeCountRef.current = countFromDB;
+          localStorage.setItem('badgeCount', countFromDB.toString());
+          console.log('✅ Badge count restaurado desde IndexedDB:', countFromDB);
+        } else {
+          // Fallback a localStorage
+          const savedBadgeCount = localStorage.getItem('badgeCount');
+          if (savedBadgeCount) {
+            const count = parseInt(savedBadgeCount, 10);
+            if (!isNaN(count) && count > 0) {
+              badgeCountRef.current = count;
+              console.log('✅ Badge count restaurado desde localStorage:', count);
+            }
+          }
+        }
+        
         // Actualizar badge solo si la app está instalada (PWA)
-        // Verificar si está en modo standalone
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-        if (isStandalone) {
-          updateAppBadge(count);
+        if (isStandalone && badgeCountRef.current > 0) {
+          await updateAppBadge(badgeCountRef.current);
+        }
+      } catch (err) {
+        console.warn('⚠️ Error leyendo badge count desde IndexedDB, usando localStorage:', err);
+        // Fallback a localStorage
+        const savedBadgeCount = localStorage.getItem('badgeCount');
+        if (savedBadgeCount) {
+          const count = parseInt(savedBadgeCount, 10);
+          if (!isNaN(count) && count > 0) {
+            badgeCountRef.current = count;
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            if (isStandalone) {
+              await updateAppBadge(count);
+            }
+          }
         }
       }
-    }
+    };
+    
+    restoreBadgeCount();
   }, [updateAppBadge]);
 
   // Suscribirse a nuevos libros usando Supabase Realtime
