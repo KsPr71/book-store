@@ -59,57 +59,57 @@ const PUSH_NOTIFICATIONS_CODE = `
 
     console.log('[SW] Showing notification with data:', notificationData);
 
-    // Verificar si hay clientes visibles (pestañas abiertas)
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-        const hasVisibleClient = clientList.some(client => client.visibilityState === 'visible');
-        console.log('[SW] Has visible client:', hasVisibleClient);
-        console.log('[SW] Total clients:', clientList.length);
-        
-        // Mostrar notificación siempre, incluso si hay clientes visibles
-        // Algunos navegadores no muestran notificaciones si la pestaña está activa
-        const notificationOptions = {
-          body: notificationData.body,
-          icon: notificationData.icon,
-          badge: notificationData.badge,
-          tag: notificationData.tag,
-          requireInteraction: true, // Forzar interacción para que siempre se muestre
-          data: notificationData.data,
-          vibrate: [200, 100, 200],
-          silent: false, // Asegurar que no esté silenciosa
-          actions: [
-            {
-              action: 'open',
-              title: 'Ver libro',
-            },
-            {
-              action: 'close',
-              title: 'Cerrar',
-            },
-          ],
-        };
-
-        return self.registration.showNotification(notificationData.title, notificationOptions)
-          .then(() => {
-            console.log('[SW] ✅ Notification shown successfully');
-            console.log('[SW] Notification options:', notificationOptions);
-          })
-          .catch((error) => {
-            console.error('[SW] ❌ Error showing notification:', error);
-            console.error('[SW] Error details:', {
-              name: error.name,
-              message: error.message,
-              stack: error.stack,
-            });
-          });
-      })
-    );
-
-    // Incrementar badge count y enviar mensaje a los clientes
-    // El badge debe actualizarse desde el cliente, pero guardamos el count en IndexedDB
-    // para que esté disponible incluso cuando la app está cerrada
+    // Usar waitUntil para mantener el service worker activo
+    // Combinar ambas operaciones en un solo waitUntil para evitar problemas
     event.waitUntil(
       (async () => {
+        // PRIMERO: Mostrar la notificación (esto es lo más importante)
+        try {
+          // Verificar si hay clientes visibles
+          const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+          const hasVisibleClient = clientList.some(client => client.visibilityState === 'visible');
+          console.log('[SW] 👁️ Has visible client:', hasVisibleClient);
+          console.log('[SW] 👥 Total clients:', clientList.length);
+          
+          // Preparar opciones de notificación
+          const notificationOptions = {
+            body: notificationData.body,
+            icon: notificationData.icon,
+            badge: notificationData.badge,
+            tag: notificationData.tag || 'notification-' + Date.now(),
+            requireInteraction: false,
+            data: notificationData.data,
+            vibrate: [200, 100, 200],
+            silent: false,
+            actions: [
+              {
+                action: 'open',
+                title: 'Ver libro',
+              },
+              {
+                action: 'close',
+                title: 'Cerrar',
+              },
+            ],
+          };
+
+          console.log('[SW] 📤 Attempting to show notification with options:', notificationOptions);
+          console.log('[SW] 📋 Notification title:', notificationData.title);
+          
+          // Mostrar la notificación
+          await self.registration.showNotification(notificationData.title, notificationOptions);
+          console.log('[SW] ✅ Notification shown successfully');
+        } catch (error) {
+          console.error('[SW] ❌ Error showing notification:', error);
+          console.error('[SW] Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+          });
+          // No lanzar el error, continuar con el badge
+        }
+
+        // SEGUNDO: Manejar badge count (no crítico, puede fallar sin afectar notificaciones)
         try {
           // Guardar badge count en IndexedDB para persistencia
           const dbName = 'BookStoreDB';
@@ -153,32 +153,36 @@ const PUSH_NOTIFICATIONS_CODE = `
           console.log('[SW] ✅ Badge count guardado en IndexedDB:', newCount);
           db.close();
         } catch (err) {
-          console.error('[SW] ❌ Error guardando badge count en IndexedDB:', err);
-          // Continuar aunque falle IndexedDB
+          console.warn('[SW] ⚠️ Error guardando badge count en IndexedDB (continuando):', err);
+          // No lanzar error, solo loguear
         }
         
-        // Enviar mensaje a los clientes para que actualicen el badge
-        const clientList = await self.clients.matchAll({ includeUncontrolled: true });
-        console.log('[SW] 📤 Enviando mensaje PUSH_RECEIVED a', clientList.length, 'cliente(s)');
-        console.log('[SW] 📋 Datos de notificación a enviar:', notificationData);
-        
-        // Enviar mensaje a todos los clientes (incluso si están en segundo plano)
-        clientList.forEach((client) => {
-          try {
-            client.postMessage({
-              type: 'PUSH_RECEIVED',
-              data: notificationData,
-            });
-            console.log('[SW] ✅ Mensaje enviado a cliente:', client.url);
-          } catch (err) {
-            console.error('[SW] ❌ Error enviando mensaje a cliente:', err);
+        // TERCERO: Enviar mensaje a los clientes para que actualicen el badge
+        try {
+          const clientList = await self.clients.matchAll({ includeUncontrolled: true });
+          console.log('[SW] 📤 Enviando mensaje PUSH_RECEIVED a', clientList.length, 'cliente(s)');
+          console.log('[SW] 📋 Datos de notificación a enviar:', notificationData);
+          
+          // Enviar mensaje a todos los clientes (incluso si están en segundo plano)
+          clientList.forEach((client) => {
+            try {
+              client.postMessage({
+                type: 'PUSH_RECEIVED',
+                data: notificationData,
+              });
+              console.log('[SW] ✅ Mensaje enviado a cliente:', client.url);
+            } catch (err) {
+              console.error('[SW] ❌ Error enviando mensaje a cliente:', err);
+            }
+          });
+          
+          // Si no hay clientes abiertos, el badge se actualizará cuando se abra la app
+          if (clientList.length === 0) {
+            console.log('[SW] ⚠️ No hay clientes abiertos, el badge se actualizará cuando se abra la app desde IndexedDB');
           }
-        });
-        
-        // Si no hay clientes abiertos, el badge se actualizará cuando se abra la app
-        // leyendo el valor desde IndexedDB
-        if (clientList.length === 0) {
-          console.log('[SW] ⚠️ No hay clientes abiertos, el badge se actualizará cuando se abra la app desde IndexedDB');
+        } catch (err) {
+          console.warn('[SW] ⚠️ Error enviando mensajes a clientes (continuando):', err);
+          // No lanzar error, solo loguear
         }
       })()
     );
