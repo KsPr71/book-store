@@ -13,51 +13,86 @@ const SW_PATH = path.join(__dirname, '../public/sw.js');
 const PUSH_NOTIFICATIONS_CODE = `
   // Push Notifications
   self.addEventListener('push', (event) => {
-    console.log('[SW] Push event received:', event);
+    console.log('[SW] 🔔 Push event received:', event);
+    console.log('[SW] Event data type:', event.data ? event.data.type : 'no data');
 
+    // Obtener URL base para iconos (necesario en móvil)
+    const getBaseUrl = () => {
+      try {
+        // Intentar obtener desde el scope del service worker
+        if (self.location && self.location.origin) {
+          return self.location.origin;
+        }
+        // Fallback a URL de producción
+        return 'https://book-store-weld-one.vercel.app';
+      } catch {
+        return 'https://book-store-weld-one.vercel.app';
+      }
+    };
+    
+    const baseUrl = getBaseUrl();
+    
     let notificationData = {
       title: '📚 Nuevo libro disponible',
       body: 'Se ha agregado un nuevo libro al catálogo',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
-      tag: 'new-book',
-      requireInteraction: false,
+      icon: baseUrl + '/icons/icon-192x192.png', // URL absoluta para móvil
+      badge: baseUrl + '/icons/icon-192x192.png', // URL absoluta para móvil
+      tag: 'notification-' + Date.now(),
       data: {},
     };
 
     if (event.data) {
       try {
         const data = event.data.json();
-        console.log('[SW] Parsed push data:', data);
+        console.log('[SW] ✅ Parsed push data (JSON):', data);
+        // Asegurar que icon y badge sean URLs absolutas
+        const iconUrl = data.icon || notificationData.icon;
+        const badgeUrl = data.badge || notificationData.badge;
+        
         notificationData = {
           ...notificationData,
           title: data.title || notificationData.title,
           body: data.body || notificationData.body,
-          icon: data.icon || notificationData.icon,
+          icon: iconUrl.startsWith('http') ? iconUrl : baseUrl + (iconUrl.startsWith('/') ? '' : '/') + iconUrl,
+          badge: badgeUrl.startsWith('http') ? badgeUrl : baseUrl + (badgeUrl.startsWith('/') ? '' : '/') + badgeUrl,
+          tag: data.tag || notificationData.tag,
           data: data.data || {},
         };
       } catch (e) {
-        console.log('[SW] Error parsing JSON, trying text:', e);
-        const text = event.data.text();
-        if (text) {
-          try {
-            const data = JSON.parse(text);
-            notificationData = {
-              ...notificationData,
-              title: data.title || notificationData.title,
-              body: data.body || notificationData.body,
-              icon: data.icon || notificationData.icon,
-              data: data.data || {},
-            };
-          } catch (e2) {
-            console.log('[SW] Using text as body:', text);
-            notificationData.body = text;
+        console.log('[SW] ⚠️ Error parsing JSON, trying text:', e);
+        try {
+          const text = event.data.text();
+          if (text) {
+            try {
+              const data = JSON.parse(text);
+              console.log('[SW] ✅ Parsed push data (text->JSON):', data);
+              // Asegurar que icon y badge sean URLs absolutas
+              const iconUrl = data.icon || notificationData.icon;
+              const badgeUrl = data.badge || notificationData.badge;
+              
+              notificationData = {
+                ...notificationData,
+                title: data.title || notificationData.title,
+                body: data.body || notificationData.body,
+                icon: iconUrl.startsWith('http') ? iconUrl : baseUrl + (iconUrl.startsWith('/') ? '' : '/') + iconUrl,
+                badge: badgeUrl.startsWith('http') ? badgeUrl : baseUrl + (badgeUrl.startsWith('/') ? '' : '/') + badgeUrl,
+                tag: data.tag || notificationData.tag,
+                data: data.data || {},
+              };
+            } catch (e2) {
+              console.log('[SW] ⚠️ Using text as body:', text);
+              notificationData.body = text;
+            }
           }
+        } catch (e3) {
+          console.error('[SW] ❌ Error reading event data:', e3);
         }
       }
+    } else {
+      console.log('[SW] ⚠️ No data in push event, using defaults');
     }
 
-    console.log('[SW] Showing notification with data:', notificationData);
+    console.log('[SW] 📋 Final notification data:', notificationData);
 
     // Usar waitUntil para mantener el service worker activo
     // Combinar ambas operaciones en un solo waitUntil para evitar problemas
@@ -72,33 +107,37 @@ const PUSH_NOTIFICATIONS_CODE = `
           console.log('[SW] 👥 Total clients:', clientList.length);
           
           // Preparar opciones de notificación
+          // Simplificar para máxima compatibilidad móvil - solo incluir opciones esenciales
           const notificationOptions = {
             body: notificationData.body,
             icon: notificationData.icon,
             badge: notificationData.badge,
             tag: notificationData.tag || 'notification-' + Date.now(),
-            requireInteraction: false,
             data: notificationData.data,
-            vibrate: [200, 100, 200],
-            silent: false,
-            actions: [
-              {
-                action: 'open',
-                title: 'Ver libro',
-              },
-              {
-                action: 'close',
-                title: 'Cerrar',
-              },
-            ],
+            // No incluir requireInteraction, vibrate, silent ni actions por defecto
+            // Estas opciones pueden causar problemas en algunos navegadores móviles
+            // El navegador manejará la notificación de forma nativa
           };
+          
+          console.log('[SW] 📱 Opciones de notificación (simplificadas para móvil):', notificationOptions);
 
           console.log('[SW] 📤 Attempting to show notification with options:', notificationOptions);
           console.log('[SW] 📋 Notification title:', notificationData.title);
+          console.log('[SW] 🔍 Service Worker registration:', self.registration ? 'available' : 'NOT available');
+          console.log('[SW] 🔍 Notification permission check:', 'will be checked by browser');
+          
+          // Verificar que el registration esté disponible
+          if (!self.registration) {
+            throw new Error('Service Worker registration not available');
+          }
           
           // Mostrar la notificación
-          await self.registration.showNotification(notificationData.title, notificationOptions);
+          const notificationPromise = self.registration.showNotification(notificationData.title, notificationOptions);
+          console.log('[SW] ⏳ Notification promise created, waiting...');
+          
+          await notificationPromise;
           console.log('[SW] ✅ Notification shown successfully');
+          console.log('[SW] 📱 Notificación enviada al sistema operativo');
         } catch (error) {
           console.error('[SW] ❌ Error showing notification:', error);
           console.error('[SW] Error details:', {
