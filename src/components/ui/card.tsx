@@ -18,6 +18,7 @@ interface BookCardProps {
 function BookCard({ book }: BookCardProps) {
   const router = useRouter();
   const { cardSize } = useCardSize();
+  const showWhatsAppText = cardSize >= 18.5;
   
   // Obtener la primera categoría para mostrar en el chip
   const firstCategory = book.categories && book.categories.length > 0 ? book.categories[0] : null;
@@ -157,7 +158,7 @@ function BookCard({ book }: BookCardProps) {
               rel="noopener noreferrer"
               onClick={handleWhatsAppClick}
               onMouseDown={(e) => e.stopPropagation()}
-              className="group/wa relative flex items-center justify-center gap-2 flex-1 rounded-lg bg-gradient-to-r from-[#25D366] to-[#20BA5A] hover:from-[#20BA5A] hover:to-[#1DA851] text-white transition-all duration-300 cursor-pointer px-4 py-2.5 shadow-lg hover:shadow-xl hover:shadow-[#25D366]/30 active:scale-[0.98] overflow-hidden"
+              className={`group/wa relative flex items-center justify-center ${showWhatsAppText ? 'gap-2 px-4' : 'gap-0 px-3'} flex-1 rounded-lg bg-gradient-to-r from-[#25D366] to-[#20BA5A] hover:from-[#20BA5A] hover:to-[#1DA851] text-white transition-all duration-300 cursor-pointer py-2.5 shadow-lg hover:shadow-xl hover:shadow-[#25D366]/30 active:scale-[0.98] overflow-hidden`}
             >
               {/* Efecto de brillo al hover */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/wa:translate-x-full transition-transform duration-700"></div>
@@ -177,14 +178,18 @@ function BookCard({ book }: BookCardProps) {
               </svg>
               
               {/* Texto del botón */}
-              <span 
-                className="font-semibold relative z-10 tracking-wide group-hover/wa:tracking-wider transition-all duration-300 whitespace-nowrap"
-                style={{
-                  fontSize: `${Math.max(0.8, cardSize * 0.042)}rem`
-                }}
-              >
-                Solicitar por WhatsApp
-              </span>
+              {showWhatsAppText ? (
+                <span 
+                  className="font-semibold relative z-10 tracking-wide group-hover/wa:tracking-wider transition-all duration-300 whitespace-nowrap"
+                  style={{
+                    fontSize: `${Math.max(0.8, cardSize * 0.042)}rem`
+                  }}
+                >
+                  Solicitar por WhatsApp
+                </span>
+              ) : (
+                <span className="sr-only">Solicitar por WhatsApp</span>
+              )}
             </a>
           </div>
         </CardBody>
