@@ -21,10 +21,16 @@ try {
   // El service worker continuará funcionando para push notifications
   // Solo se perderá la funcionalidad de caching de Workbox
   // Crear un objeto workbox mínimo para evitar errores en el código que lo usa
+  // NO incluir NetworkFirst, NetworkOnly, etc. para que el código detecte que no está disponible
   if (typeof self.workbox === 'undefined') {
     self.workbox = {
-      clientsClaim: () => {},
-      registerRoute: () => {},
+      clientsClaim: () => {
+        console.log('[SW] ⚠️ clientsClaim llamado pero Workbox no disponible');
+      },
+      registerRoute: () => {
+        console.log('[SW] ⚠️ registerRoute llamado pero Workbox no disponible');
+      },
+      // NO incluir NetworkFirst, NetworkOnly, etc. para que isWorkboxAvailable detecte que no está disponible
     };
   }
 }
@@ -77,7 +83,7 @@ if (!self.define) {
         return promise;
       })
     );
-  };;;;;;;;;;;
+  };;;;;;;;;;;;;;
 
   self.define = (depsNames, factory) => {
     const uri = nextDefineUri || ("document" in self ? document.currentScript.src : "") || location.href;
@@ -104,34 +110,53 @@ define(['/workbox-e43f5367'], (function (workbox) { 'use strict';
 
   importScripts();
   self.skipWaiting();
-  workbox.clientsClaim();
-  workbox.registerRoute("/", new workbox.NetworkFirst({
-    "cacheName": "start-url",
-    plugins: [{
-      cacheWillUpdate: async ({
-        request,
-        response,
-        event,
-        state
-      }) => {
-        if (response && response.type === 'opaqueredirect') {
-          return new Response(response.body, {
-            status: 200,
-            statusText: 'OK',
-            headers: response.headers
-          });
-        }
-        return response;
-      }
-    }]
-  }), 'GET');
-  workbox.registerRoute(/.*/i, new workbox.NetworkOnly({
-    "cacheName": "dev",
-    plugins: []
-  }), 'GET');
+  
+  // Verificar si Workbox está realmente disponible (tiene las clases necesarias)
+  const isWorkboxAvailable = workbox && 
+                              typeof workbox.clientsClaim === 'function' &&
+                              typeof workbox.registerRoute === 'function' &&
+                              workbox.NetworkFirst &&
+                              workbox.NetworkOnly;
+  
+  if (isWorkboxAvailable) {
+    console.log('[SW] ✅ Workbox disponible, configurando rutas de cache');
+    try {
+      workbox.clientsClaim();
+      workbox.registerRoute("/", new workbox.NetworkFirst({
+        "cacheName": "start-url",
+        plugins: [{
+          cacheWillUpdate: async ({
+            request,
+            response
+          }) => {
+            if (response && response.type === 'opaqueredirect') {
+              return new Response(response.body, {
+                status: 200,
+                statusText: 'OK',
+                headers: response.headers
+              });
+            }
+            return response;
+          }
+        }]
+      }), 'GET');
+      workbox.registerRoute(/.*/i, new workbox.NetworkOnly({
+        "cacheName": "dev",
+        plugins: []
+      }), 'GET');
+    } catch (error) {
+      console.warn('[SW] ⚠️ Error configurando Workbox routes:', error);
+    }
+  } else {
+    console.warn('[SW] ⚠️ Workbox no está completamente disponible, saltando configuración de cache');
+    console.warn('[SW] ⚠️ El service worker funcionará para push notifications pero sin caching avanzado');
+  }
 
-  // Push Notifications
-  self.addEventListener('push', (event) => {
+}));
+
+// Push Notifications - FUERA del bloque define para que se ejecute siempre
+// Esto asegura que las notificaciones funcionen incluso si Workbox falla
+self.addEventListener('push', (event) => {
     console.log('[SW] 🔔 Push event received:', event);
     console.log('[SW] Event data type:', event.data ? event.data.type : 'no data');
 
@@ -423,5 +448,3 @@ define(['/workbox-e43f5367'], (function (workbox) { 'use strict';
       })()
     );
   });
-
-}));

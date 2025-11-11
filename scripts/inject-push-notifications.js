@@ -11,8 +11,9 @@ const SW_PATH = path.join(__dirname, '../public/sw.js');
 
 // Código de push notifications a inyectar
 const PUSH_NOTIFICATIONS_CODE = `
-  // Push Notifications
-  self.addEventListener('push', (event) => {
+// Push Notifications - FUERA del bloque define para que se ejecute siempre
+// Esto asegura que las notificaciones funcionen incluso si Workbox falla
+self.addEventListener('push', (event) => {
     console.log('[SW] 🔔 Push event received:', event);
     console.log('[SW] Event data type:', event.data ? event.data.type : 'no data');
 
@@ -337,7 +338,7 @@ function injectPushNotifications() {
       
       // Preparar el código de carga con manejo de errores
       const workboxUrl = `/${workboxFile}.js`;
-      const syncLoadCode = `\n// Cargar Workbox síncronamente al inicio (requerido por service workers)\n// Esto evita el error "importScripts() of new scripts after service worker installation is not allowed"\n// NOTA: Si Workbox no está disponible, el service worker seguirá funcionando para push notifications\ntry {\n  importScripts('${workboxUrl}');\n  console.log('[SW] ✅ Workbox cargado correctamente');\n} catch (e) {\n  console.warn('[SW] ⚠️ Workbox no disponible, continuando sin caching avanzado:', e.message);\n  // El service worker continuará funcionando para push notifications\n  // Solo se perderá la funcionalidad de caching de Workbox\n  // Crear un objeto workbox mínimo para evitar errores en el código que lo usa\n  if (typeof self.workbox === 'undefined') {\n    self.workbox = {\n      clientsClaim: () => {},\n      registerRoute: () => {},\n    };\n  }\n}\n`;
+      const syncLoadCode = `\n// Cargar Workbox síncronamente al inicio (requerido por service workers)\n// Esto evita el error "importScripts() of new scripts after service worker installation is not allowed"\n// NOTA: Si Workbox no está disponible, el service worker seguirá funcionando para push notifications\ntry {\n  importScripts('${workboxUrl}');\n  console.log('[SW] ✅ Workbox cargado correctamente');\n} catch (e) {\n  console.warn('[SW] ⚠️ Workbox no disponible, continuando sin caching avanzado:', e.message);\n  // El service worker continuará funcionando para push notifications\n  // Solo se perderá la funcionalidad de caching de Workbox\n  // Crear un objeto workbox mínimo para evitar errores en el código que lo usa\n  // NO incluir NetworkFirst, NetworkOnly, etc. para que el código detecte que no está disponible\n  if (typeof self.workbox === 'undefined') {\n    self.workbox = {\n      clientsClaim: () => {\n        console.log('[SW] ⚠️ clientsClaim llamado pero Workbox no disponible');\n      },\n      registerRoute: () => {\n        console.log('[SW] ⚠️ registerRoute llamado pero Workbox no disponible');\n      },\n      // NO incluir NetworkFirst, NetworkOnly, etc. para que isWorkboxAvailable detecte que no está disponible\n    };\n  }\n}\n`;
       
       if (!hasWorkboxLoad || !hasErrorHandling) {
         // Si ya existe pero no tiene manejo de errores, reemplazarlo
@@ -459,8 +460,9 @@ function injectPushNotifications() {
       return;
     }
 
-    // Buscar el final del código de Workbox (antes del cierre del último bloque)
-    // El código de Workbox termina con })); o similar
+    // Buscar el final del código de Workbox (el cierre del define)
+    // El código de Workbox termina con })); 
+    // IMPORTANTE: Inyectar el código DESPUÉS del cierre del define para que se ejecute siempre
     const lastBraceIndex = swContent.lastIndexOf('}));');
     
     if (lastBraceIndex === -1) {
@@ -468,11 +470,15 @@ function injectPushNotifications() {
       return;
     }
 
-    // Inyectar el código antes del cierre
-    const beforeClose = swContent.substring(0, lastBraceIndex);
-    const afterClose = swContent.substring(lastBraceIndex);
+    // Inyectar el código DESPUÉS del cierre del define (no antes)
+    // Esto asegura que las push notifications se ejecuten siempre, incluso si Workbox falla
+    const beforeClose = swContent.substring(0, lastBraceIndex + 4); // +4 para incluir '}));'
+    const afterClose = swContent.substring(lastBraceIndex + 4);
     
-    swContent = beforeClose + PUSH_NOTIFICATIONS_CODE + '\n\n' + afterClose;
+    // Agregar comentario explicativo
+    const pushCodeWithComment = '\n\n// Push Notifications - FUERA del bloque define para que se ejecute siempre\n// Esto asegura que las notificaciones funcionen incluso si Workbox falla\n' + PUSH_NOTIFICATIONS_CODE;
+    
+    swContent = beforeClose + pushCodeWithComment + '\n\n' + afterClose;
 
     // Escribir el archivo actualizado
     fs.writeFileSync(SW_PATH, swContent, 'utf8');
