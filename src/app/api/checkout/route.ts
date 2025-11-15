@@ -142,7 +142,8 @@ export async function POST(request: Request) {
 
     // Enviar notificación al admin sobre el nuevo pedido
     try {
-      await sendAdminNotification(
+      console.log(`📢 Attempting to send admin notification for order ${order.order_number}`);
+      const notifResult = await sendAdminNotification(
         '🛒 Nuevo pedido recibido',
         `Pedido ${order.order_number} por ${checkoutData.customer_name} - Total: $${totalAmount.toFixed(2)}`,
         {
@@ -151,8 +152,14 @@ export async function POST(request: Request) {
           orderNumber: order.order_number,
         }
       );
+      
+      if (notifResult.success && notifResult.sent > 0) {
+        console.log(`✅ Admin notification sent successfully for order ${order.order_number}`);
+      } else {
+        console.warn(`⚠️ Admin notification failed or no subscriptions: ${notifResult.error || 'No subscriptions found'}`);
+      }
     } catch (notifError) {
-      console.error('Error sending admin notification:', notifError);
+      console.error('❌ Error sending admin notification:', notifError);
       // No fallar el checkout si falla la notificación
     }
 

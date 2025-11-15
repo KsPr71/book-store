@@ -42,16 +42,17 @@ const pwaConfig = withPWA({
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/.*\.supabase\.(co|in|storage)\/.*/i,
-      handler: 'CacheFirst',
+      handler: 'NetworkFirst',
       options: {
         cacheName: 'supabase-images',
         expiration: {
           maxEntries: 100,
-          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 días
+          maxAgeSeconds: 60 * 60 * 24, // 1 día (reducido de 30 días)
         },
         cacheableResponse: {
           statuses: [0, 200],
         },
+        networkTimeoutSeconds: 10, // Timeout de red antes de usar cache
       },
     },
     {

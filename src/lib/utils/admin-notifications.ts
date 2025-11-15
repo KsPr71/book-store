@@ -11,7 +11,7 @@ const ADMIN_EMAIL = 'jorgealejandrocasaresdelgado@gmail.com';
  */
 async function getAdminSubscriptions() {
   if (!supabaseServiceRoleKey) {
-    console.error('Service role key not configured');
+    console.error('❌ Service role key not configured');
     return [];
   }
 
@@ -23,7 +23,7 @@ async function getAdminSubscriptions() {
   const { data: adminUsers, error: usersError } = await adminClient.auth.admin.listUsers();
 
   if (usersError || !adminUsers) {
-    console.error('Error fetching admin users:', usersError);
+    console.error('❌ Error fetching admin users:', usersError);
     return [];
   }
 
@@ -32,9 +32,12 @@ async function getAdminSubscriptions() {
   );
 
   if (!adminUser) {
-    console.warn('⚠️ Admin user not found');
+    console.warn(`⚠️ Admin user not found with email: ${ADMIN_EMAIL}`);
+    console.warn(`📋 Available users: ${adminUsers.users.map(u => u.email).join(', ')}`);
     return [];
   }
+
+  console.log(`✅ Admin user found: ${adminUser.email} (${adminUser.id})`);
 
   // Obtener suscripciones del admin
   const { data: subscriptions, error } = await adminClient
@@ -43,8 +46,15 @@ async function getAdminSubscriptions() {
     .eq('user_id', adminUser.id);
 
   if (error) {
-    console.error('Error fetching admin subscriptions:', error);
+    console.error('❌ Error fetching admin subscriptions:', error);
     return [];
+  }
+
+  if (!subscriptions || subscriptions.length === 0) {
+    console.warn(`⚠️ No push subscriptions found for admin user ${adminUser.id}`);
+    console.warn('💡 The admin needs to subscribe to push notifications from their browser');
+  } else {
+    console.log(`✅ Found ${subscriptions.length} subscription(s) for admin`);
   }
 
   return subscriptions || [];
@@ -78,8 +88,11 @@ export async function sendAdminNotification(
 
     if (subscriptions.length === 0) {
       console.warn('⚠️ No admin push subscriptions found');
-      return { success: true, sent: 0 };
+      console.warn('💡 El admin debe suscribirse a notificaciones push desde su navegador');
+      return { success: true, sent: 0, error: 'No admin subscriptions found' };
     }
+
+    console.log(`📱 Found ${subscriptions.length} admin subscription(s)`);
 
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
@@ -130,10 +143,28 @@ export async function sendAdminNotification(
     const successful = results.filter(
       (r) => r.status === 'fulfilled' && r.value.success
     ).length;
+    const failed = results.filter(
+      (r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)
+    );
 
-    console.log(`✅ Admin notification sent: ${successful} successful`);
+    if (successful > 0) {
+      console.log(`✅ Admin notification sent: ${successful} successful`);
+    } else {
+      console.error(`❌ Admin notification failed: ${failed.length} failed`);
+      failed.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`  - Subscription ${index}: ${result.reason}`);
+        } else if (result.status === 'fulfilled' && !result.value.success) {
+          console.error(`  - Subscription ${index}: ${result.value.error || 'Unknown error'}`);
+        }
+      });
+    }
 
-    return { success: true, sent: successful };
+    return { 
+      success: successful > 0, 
+      sent: successful,
+      error: successful === 0 ? 'All notifications failed' : undefined
+    };
   } catch (err) {
     console.error('Error sending admin notification:', err);
     return {

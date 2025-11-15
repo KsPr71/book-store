@@ -64,7 +64,9 @@ export async function uploadImage(
       .from(bucket)
       .getPublicUrl(data.path);
 
-    const publicUrl = urlData.publicUrl;
+    // Agregar timestamp para cache-busting y forzar recarga de imágenes nuevas
+    const timestamp = Date.now();
+    const publicUrl = `${urlData.publicUrl}?t=${timestamp}`;
     
     console.log(`[Storage] Imagen subida exitosamente. Bucket: ${bucket}, Path: ${data.path}, URL: ${publicUrl}`);
 

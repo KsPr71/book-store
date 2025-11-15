@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
       ? `${firstName || ''} ${lastName || ''}`.trim()
       : email.split('@')[0];
 
-    await sendAdminNotification(
+    console.log(`📢 Attempting to send admin notification for new user: ${email}`);
+    
+    const notifResult = await sendAdminNotification(
       '👤 Nuevo usuario registrado',
       `${userName} (${email}) se ha registrado en la plataforma`,
       {
@@ -31,7 +33,13 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    return NextResponse.json({ ok: true });
+    if (notifResult.success && notifResult.sent > 0) {
+      console.log(`✅ Admin notification sent successfully for new user: ${email}`);
+    } else {
+      console.warn(`⚠️ Admin notification failed or no subscriptions: ${notifResult.error || 'No subscriptions found'}`);
+    }
+
+    return NextResponse.json({ ok: true, notificationSent: notifResult.sent > 0 });
   } catch (err) {
     console.error('Error sending new user notification:', err);
     return NextResponse.json(
