@@ -34,6 +34,8 @@ export async function uploadImage(
     }
 
     // Subir a Supabase Storage
+    // El path debe ser relativo dentro del bucket, sin incluir el nombre del bucket
+    console.log(`[Storage] Subiendo imagen. Bucket: ${bucket}, Path: ${path}`);
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, file, {
@@ -53,22 +55,39 @@ export async function uploadImage(
       return { url: null, error: error.message };
     }
 
+    if (!data || !data.path) {
+      console.error('Error: Upload succeeded but no data.path returned');
+      if (onProgress) {
+        onProgress({ loaded: 0, total: file.size });
+      }
+      return { url: null, error: 'Upload succeeded but no path returned' };
+    }
+
     // Completar el progreso
     if (onProgress) {
       onProgress({ loaded: file.size, total: file.size });
     }
 
     // Obtener la URL pública de la imagen
-    // data.path ya incluye el nombre del archivo con su ruta completa
+    // data.path es el path relativo dentro del bucket (ej: "temp-123456.jpg" o "authors/author-123.jpg")
+    // No debe incluir el nombre del bucket
     const { data: urlData } = supabase.storage
       .from(bucket)
       .getPublicUrl(data.path);
 
-    // Agregar timestamp para cache-busting y forzar recarga de imágenes nuevas
-    const timestamp = Date.now();
-    const publicUrl = `${urlData.publicUrl}?t=${timestamp}`;
+    if (!urlData || !urlData.publicUrl) {
+      console.error('Error: Failed to get public URL for path:', data.path);
+      return { url: null, error: 'Failed to generate public URL' };
+    }
+
+    const publicUrl = urlData.publicUrl;
     
-    console.log(`[Storage] Imagen subida exitosamente. Bucket: ${bucket}, Path: ${data.path}, URL: ${publicUrl}`);
+    // Validar que la URL contiene el bucket correcto
+    if (!publicUrl.includes(bucket)) {
+      console.warn(`[Storage] ⚠️ La URL generada no contiene el nombre del bucket '${bucket}'. URL: ${publicUrl}`);
+    }
+    
+    console.log(`[Storage] ✅ Imagen subida exitosamente. Bucket: ${bucket}, Path: ${data.path}, URL: ${publicUrl}`);
 
     return { url: publicUrl, error: null };
   } catch (error: unknown) {
@@ -88,8 +107,9 @@ export async function uploadBookCover(
 ): Promise<{ url: string | null; error: string | null }> {
   const extension = file.name.split('.').pop();
   const fileName = `${bookId}-${Date.now()}.${extension}`;
-  // El path no debe incluir el nombre del bucket, solo la ruta dentro del bucket
-  const path = fileName;
+  // El path debe incluir la carpeta portadas dentro del bucket portadas
+  // Resultado: bucket/portadas/portadas/nombre-archivo.jpg
+  const path = `portadas/${fileName}`;
   
   return uploadImage('portadas', file, path, onProgress);
 }

@@ -74,6 +74,12 @@ export function BookEditForm({ book, onClose }: BookEditFormProps) {
     if (result.url) {
       setCoverImageUrl(result.url);
       setFormData({ ...formData, cover_image_url: result.url });
+      console.log('✅ URL de imagen guardada en formData:', result.url);
+    } else {
+      const errorMsg = result.error || 'Error al subir la imagen';
+      console.error('❌ Error al subir imagen:', errorMsg);
+      setError(errorMsg);
+      // No lanzar error aquí, dejar que ImageUploader lo maneje
     }
 
     return result;
