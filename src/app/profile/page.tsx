@@ -10,6 +10,7 @@ type ProfileData = {
   first_name?: string | null;
   last_name?: string | null;
   birth_date?: string | null;
+  phone_number?: string | null;
   genres?: string[] | null;
 };
 

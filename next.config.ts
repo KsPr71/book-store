@@ -85,7 +85,7 @@ const pwaConfig = withPWA({
           maxEntries: 50,
           maxAgeSeconds: 60 * 5, // 5 minutos
         },
-        networkTimeoutSeconds: 10,
+        networkTimeoutSeconds: 30, // Aumentado de 10 a 30 segundos
       },
     },
   ],

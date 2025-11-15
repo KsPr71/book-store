@@ -32,10 +32,10 @@ export async function POST(request: Request) {
     });
 
     const body = await request.json();
-    const { first_name, last_name, birth_date, genres } = body;
+    const { first_name, last_name, birth_date, phone_number, genres } = body;
 
     // Basic validation
-    if (!first_name && !last_name && !birth_date && (!genres || genres.length === 0)) {
+    if (!first_name && !last_name && !birth_date && !phone_number && (!genres || genres.length === 0)) {
       return NextResponse.json({ error: 'No hay datos para actualizar' }, { status: 400 });
     }
 
@@ -68,6 +68,7 @@ export async function POST(request: Request) {
       first_name: first_name || null,
       last_name: last_name || null,
       birth_date: birth_date || null,
+      phone_number: phone_number || null,
       genres: cleanedGenres,
       updated_at: new Date().toISOString(),
     };

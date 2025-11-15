@@ -516,10 +516,18 @@ export function useNotifications() {
       setPushSubscription(subscriptionData);
       localStorage.setItem('pushSubscription', JSON.stringify(subscriptionData));
 
+      // Obtener token de autenticación si el usuario está logueado
+      const { supabase } = await import('@/lib/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       // Enviar al servidor
       const response = await fetch('/api/notifications/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ subscription: subscriptionData }),
       });
 

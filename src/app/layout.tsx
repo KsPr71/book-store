@@ -5,6 +5,7 @@ import { BookStoreProvider } from "@/contexts/BookStoreContext";
 import { NavigationProvider } from "@/contexts/NavigationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CardSizeProvider } from "@/contexts/CardSizeContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { NavbarWrapper } from "@/components/navbar-wrapper";
 import { FooterWithLogo } from "@/components/ui/footer";
 import { ThemeProvider } from "@/components/ui/theme-provider";
@@ -71,14 +72,16 @@ export default function RootLayout({
         >
           <BookStoreProvider>
             <AuthProvider>
-              <CardSizeProvider>
-                <NavigationProvider>
-                  <NavbarWrapper />
-                  {children}
-             
-                  <FooterWithLogo/>
-                </NavigationProvider>
-              </CardSizeProvider>
+              <CartProvider>
+                <CardSizeProvider>
+                  <NavigationProvider>
+                    <NavbarWrapper />
+                    {children}
+                 
+                    <FooterWithLogo/>
+                  </NavigationProvider>
+                </CardSizeProvider>
+              </CartProvider>
             </AuthProvider>
           </BookStoreProvider>
         </ThemeProvider>

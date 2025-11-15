@@ -94,7 +94,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     firstName?: string,
     lastName?: string
   ) => {
-    const { error } = await signUp({ email, password, firstName, lastName });
+    const { error, data } = await signUp({ email, password, firstName, lastName });
+    
+    // Si el registro fue exitoso, notificar al admin
+    if (!error && data?.user) {
+      try {
+        await fetch('/api/notifications/new-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: data.user.email,
+            firstName,
+            lastName,
+          }),
+        });
+      } catch (notifError) {
+        console.error('Error sending new user notification:', notifError);
+        // No fallar el registro si falla la notificación
+      }
+    }
+    
     return { error };
   };
 

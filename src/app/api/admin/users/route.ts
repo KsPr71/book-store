@@ -75,14 +75,33 @@ export async function GET(request: Request) {
       );
     }
 
+    // Obtener perfiles de usuarios para incluir phone_number
+    const { data: profilesData, error: profilesError } = await adminClient
+      .from('profiles')
+      .select('user_id, phone_number, first_name, last_name');
+
+    // Crear un mapa de user_id -> profile para acceso rápido
+    const profilesMap = new Map();
+    if (profilesData) {
+      profilesData.forEach((profile) => {
+        profilesMap.set(profile.user_id, profile);
+      });
+    }
+
     // Formatear los datos de usuarios
-    const users = data.users.map((user) => ({
-      id: user.id,
-      email: user.email || 'Sin email',
-      createdAt: user.created_at || '',
-      emailConfirmed: user.email_confirmed_at !== null,
-      lastSignIn: user.last_sign_in_at || null,
-    }));
+    const users = data.users.map((user) => {
+      const profile = profilesMap.get(user.id);
+      return {
+        id: user.id,
+        email: user.email || 'Sin email',
+        createdAt: user.created_at || '',
+        emailConfirmed: user.email_confirmed_at !== null,
+        lastSignIn: user.last_sign_in_at || null,
+        phoneNumber: profile?.phone_number || null,
+        firstName: profile?.first_name || null,
+        lastName: profile?.last_name || null,
+      };
+    });
 
     return NextResponse.json({ users, error: null }, { status: 200 });
   } catch (error) {

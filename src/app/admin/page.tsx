@@ -10,9 +10,10 @@ import { AuthorForm } from '@/components/admin/author-form';
 import { CategoryForm } from '@/components/admin/category-form';
 import { UserList } from '@/components/admin/user-list';
 import { AnalyticsDashboard } from '@/components/admin/analytics-dashboard';
+import { OrderList } from '@/components/admin/order-list';
 import NotificationsDebug from '@/components/notifications-debug';
 
-type TabType = 'books' | 'list' | 'authors' | 'categories' | 'users' | 'analytics' | 'notifications';
+type TabType = 'books' | 'list' | 'authors' | 'categories' | 'users' | 'analytics' | 'notifications' | 'orders';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function AdminPage() {
         {/* Tabs */}
         <div className="border-b border-neutral-200 dark:border-neutral-700 mb-6">
           <nav className="flex space-x-8 overflow-x-auto">
-            {(['books', 'list', 'authors', 'categories', 'users', 'analytics', 'notifications'] as TabType[]).map((tab) => (
+            {(['books', 'list', 'authors', 'categories', 'users', 'orders', 'analytics', 'notifications'] as TabType[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -78,6 +79,7 @@ export default function AdminPage() {
                 {tab === 'authors' && 'Autores'}
                 {tab === 'categories' && 'Categorías'}
                 {tab === 'users' && 'Usuarios'}
+                {tab === 'orders' && 'Pedidos'}
                 {tab === 'analytics' && 'Analytics'}
                 {tab === 'notifications' && 'Notificaciones'}
               </button>
@@ -92,6 +94,17 @@ export default function AdminPage() {
           {activeTab === 'authors' && <AuthorForm />}
           {activeTab === 'categories' && <CategoryForm />}
           {activeTab === 'users' && <UserList />}
+          {activeTab === 'orders' && (
+            <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 p-6">
+              <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-4">
+                Gestión de Pedidos
+              </h2>
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+                Administra todos los pedidos realizados por los usuarios. Puedes ver detalles, cambiar estados y agregar notas.
+              </p>
+              <OrderList />
+            </div>
+          )}
           {activeTab === 'analytics' && <AnalyticsDashboard />}
           {activeTab === 'notifications' && (
             <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 p-6">

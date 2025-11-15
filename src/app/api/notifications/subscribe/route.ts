@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,10 +10,26 @@ export async function POST(req: NextRequest) {
     const subscription = body.subscription;
     const userAgent = req.headers.get('user-agent') || '';
     const origin = req.headers.get('origin') || '';
+    const authHeader = req.headers.get('authorization');
+    const accessToken = authHeader?.replace('Bearer ', '');
 
     if (!subscription || !subscription.endpoint) {
       return NextResponse.json({ ok: false, error: 'Invalid subscription' }, { status: 400 });
     }
+
+    // Obtener usuario si está autenticado
+    let userId: string | null = null;
+    if (accessToken) {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { persistSession: false },
+      });
+      const { data: { user } } = await supabase.auth.getUser(accessToken);
+      userId = user?.id || null;
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false },
+    });
 
     // Detectar tipo de dispositivo
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
@@ -33,6 +52,7 @@ export async function POST(req: NextRequest) {
     const subscriptionData = {
       endpoint: subscription.endpoint,
       keys: subscription.keys,
+      user_id: userId,
       device_type: deviceType,
       user_agent: userAgent.substring(0, 200), // Limitar longitud
       origin: origin,

@@ -87,3 +87,68 @@ export interface CategoryWithBooks extends Category {
   subcategories?: Category[];
 }
 
+// =====================================================
+// TIPOS PARA SISTEMA DE PEDIDOS Y CARRITO
+// =====================================================
+
+export type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled' | 'refunded';
+
+export interface CartItem {
+  cart_id: string;
+  user_id: string;
+  book_id: string;
+  quantity: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CartItemWithBook extends CartItem {
+  book: BookWithRelations;
+}
+
+export interface Order {
+  order_id: string;
+  user_id: string;
+  order_number: string;
+  status: OrderStatus;
+  total_amount: number;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  shipping_address?: string | null;
+  notes?: string | null;
+  admin_notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string | null;
+  cancelled_at?: string | null;
+}
+
+export interface OrderItem {
+  order_item_id: string;
+  order_id: string;
+  book_id: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+  created_at: string;
+}
+
+export interface OrderItemWithBook extends OrderItem {
+  book: BookWithRelations;
+}
+
+export interface OrderWithDetails extends Order {
+  item_count?: number;
+  total_items?: number;
+  items?: OrderItemWithBook[];
+}
+
+export interface CheckoutData {
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  shipping_address?: string;
+  notes?: string;
+}
+

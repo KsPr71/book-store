@@ -5,24 +5,29 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { useNavigation } from "@/contexts/NavigationContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { checkIsAdmin } from "@/lib/supabase/admin";
 import { Navbar, NavBody, MobileNav, MobileNavHeader, MobileNavMenu, MobileNavToggle } from "@/components/ui/resizable-navbar";
 import { useOutsideClick } from "@/hooks/use-outside-click";
-import { Settings } from "lucide-react";
+import { Settings, User, Package, LogOut } from "lucide-react";
 import dynamic from "next/dynamic";
 const AboutModal = dynamic(() => import("@/components/ui/about-modal"), { ssr: false });
 const SettingsModal = dynamic(() => import("@/components/ui/settings-modal").then(mod => ({ default: mod.SettingsModal })), { ssr: false });
+const CartModal = dynamic(() => import("@/components/cart-modal").then(mod => ({ default: mod.CartModal })), { ssr: false });
 
 export function NavbarWrapper() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
   const { setActiveSection } = useNavigation();
   const { user, logout } = useAuth();
+  const { getTotalItems } = useCart();
   const isAdminUser = user ? checkIsAdmin(user.email) : false;
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const cartItemCount = getTotalItems();
 
   // Cerrar el menú del usuario al hacer click fuera
   useOutsideClick(userMenuRef, () => {
@@ -98,9 +103,30 @@ export function NavbarWrapper() {
                       // Ir a perfil (ruta de ejemplo)
                       window.location.href = '/profile';
                     }}
-                    className="w-full text-left px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700 rounded-t-md transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700 rounded-t-md transition-colors flex items-center gap-2"
                   >
+                    <User className="w-4 h-4" />
                     Perfil
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      window.location.href = '/orders';
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700 border-t border-gray-200 dark:border-neutral-700 transition-colors flex items-center gap-2"
+                  >
+                    <Package className="w-4 h-4" />
+                    Mis Pedidos
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setIsSettingsOpen(true);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700 border-t border-gray-200 dark:border-neutral-700 transition-colors flex items-center gap-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Configuración
                   </button>
                   <button
                     onClick={async () => {
@@ -108,22 +134,37 @@ export function NavbarWrapper() {
                       await logout();
                       window.location.href = '/';
                     }}
-                    className="w-full text-left px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700 rounded-b-md border-t border-gray-200 dark:border-neutral-700 transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-700 rounded-b-md border-t border-gray-200 dark:border-neutral-700 transition-colors flex items-center gap-2"
                   >
+                    <LogOut className="w-4 h-4" />
                     Cerrar sesión
                   </button>
                 </div>
               )}
             </div>
           )}
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors ml-4 flex items-center gap-2"
-            aria-label="Configuración"
-          >
-            <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Configuración</span>
-          </button>
+          {user && (
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative px-3 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors ml-4 flex items-center justify-center"
+              aria-label="Carrito"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {cartItemCount > 9 ? '9+' : cartItemCount}
+                </span>
+              )}
+            </button>
+          )}
           <button
             onClick={() => setIsAboutOpen(true)}
             className="relative px-4 py-2 text-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors ml-4"
@@ -187,21 +228,64 @@ export function NavbarWrapper() {
           )}
           {user ? (
             <>
+              <button
+                onClick={() => {
+                  setIsCartOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="relative flex items-center justify-center w-full px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+                aria-label="Carrito"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartItemCount > 9 ? '9+' : cartItemCount}
+                  </span>
+                )}
+              </button>
               <Link
                 href="/profile"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="block w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+                className="flex items-center gap-2 w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
               >
+                <User className="w-4 h-4" />
                 Perfil
               </Link>
+              <Link
+                href="/orders"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2 w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+              >
+                <Package className="w-4 h-4" />
+                Mis Pedidos
+              </Link>
+              <button
+                onClick={() => {
+                  setIsSettingsOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-2 w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+              >
+                <Settings className="w-4 h-4" />
+                Configuración
+              </button>
               <button
                 onClick={async () => {
                   await logout();
                   setIsMobileMenuOpen(false);
                   window.location.href = '/';
                 }}
-                className="block w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
+                className="flex items-center gap-2 w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
               >
+                <LogOut className="w-4 h-4" />
                 Cerrar sesión
               </button>
             </>
@@ -225,16 +309,6 @@ export function NavbarWrapper() {
           )}
           <button
             onClick={() => {
-              setIsSettingsOpen(true);
-              setIsMobileMenuOpen(false);
-            }}
-            className="flex items-center gap-2 w-full text-left px-4 py-2 text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-md transition-colors duration-200"
-          >
-            <Settings className="w-4 h-4" />
-            Configuración
-          </button>
-          <button
-            onClick={() => {
               setIsAboutOpen(true);
               setIsMobileMenuOpen(false);
             }}
@@ -246,6 +320,7 @@ export function NavbarWrapper() {
       </MobileNav>
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      {user && <CartModal isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />}
     </Navbar>
   );
 }

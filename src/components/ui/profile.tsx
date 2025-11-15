@@ -4,11 +4,13 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
 import { useCategories } from '@/hooks/useCategories';
+import { CountryPhoneSelector, formatFullPhoneNumber, parsePhoneNumber } from '@/components/ui/country-phone-selector';
 
 type ProfileData = {
   first_name?: string | null;
   last_name?: string | null;
   birth_date?: string | null;
+  phone_number?: string | null;
   genres?: string[] | null;
 };
 
@@ -22,6 +24,8 @@ export default function ProfileForm({
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [birthDate, setBirthDate] = React.useState("");
+  const [phoneCountryCode, setPhoneCountryCode] = React.useState("+53");
+  const [phoneNumber, setPhoneNumber] = React.useState("");
   const [genres, setGenres] = React.useState<string[]>([]);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [loading, setLoading] = React.useState(false);
@@ -45,6 +49,17 @@ export default function ProfileForm({
       setFirstName(initialData.first_name ?? "");
       setLastName(initialData.last_name ?? "");
       setBirthDate(initialData.birth_date ?? "");
+      
+      // Parsear número de teléfono si existe
+      if (initialData.phone_number) {
+        const parsed = parsePhoneNumber(initialData.phone_number);
+        setPhoneCountryCode(parsed.countryCode);
+        setPhoneNumber(parsed.phoneNumber);
+      } else {
+        setPhoneCountryCode("+53");
+        setPhoneNumber("");
+      }
+      
       setGenres(initialData.genres ?? []);
     }
   }, [initialData]);
@@ -55,6 +70,13 @@ export default function ProfileForm({
     setMessage(null);
 
     try {
+      // Validar que el teléfono sea obligatorio
+      if (!phoneNumber || phoneNumber.trim() === '') {
+        setMessage("El teléfono es obligatorio.");
+        setLoading(false);
+        return;
+      }
+
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
       if (!accessToken) {
@@ -63,10 +85,14 @@ export default function ProfileForm({
         return;
       }
 
+      // Formatear número de teléfono completo con código de país
+      const fullPhoneNumber = formatFullPhoneNumber(phoneCountryCode, phoneNumber);
+
       const payload = {
         first_name: firstName,
         last_name: lastName,
         birth_date: birthDate || null,
+        phone_number: fullPhoneNumber,
         genres,
       };
 
@@ -107,6 +133,17 @@ export default function ProfileForm({
       <label className="block mb-3">
         <span className="text-sm text-neutral-700 dark:text-neutral-300">Fecha de nacimiento</span>
         <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="w-full px-3 py-2 rounded-md border" />
+      </label>
+      <label className="block mb-3">
+        <span className="text-sm text-neutral-700 dark:text-neutral-300 mb-2 block">
+          Teléfono <span className="text-red-500">*</span>
+        </span>
+        <CountryPhoneSelector
+          countryCode={phoneCountryCode}
+          phoneNumber={phoneNumber}
+          onCountryCodeChange={setPhoneCountryCode}
+          onPhoneNumberChange={setPhoneNumber}
+        />
       </label>
 
       <div className="mb-3">
