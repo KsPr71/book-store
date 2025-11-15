@@ -87,7 +87,15 @@ export async function uploadImage(
       console.warn(`[Storage] ⚠️ La URL generada no contiene el nombre del bucket '${bucket}'. URL: ${publicUrl}`);
     }
     
+    // Validar que la URL es accesible
     console.log(`[Storage] ✅ Imagen subida exitosamente. Bucket: ${bucket}, Path: ${data.path}, URL: ${publicUrl}`);
+    console.log(`[Storage] 📋 Detalles: Path completo en bucket: ${data.path}, URL pública: ${publicUrl}`);
+    
+    // Verificar que la URL tiene el formato correcto
+    if (!publicUrl.startsWith('https://')) {
+      console.error(`[Storage] ❌ URL no válida (no comienza con https://): ${publicUrl}`);
+      return { url: null, error: 'URL generada no es válida' };
+    }
 
     return { url: publicUrl, error: null };
   } catch (error: unknown) {
