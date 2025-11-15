@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import type { OrderWithDetails, OrderItemWithBook } from '@/types/database';
 
-export default function OrdersPage() {
+function OrdersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
@@ -300,6 +300,20 @@ export default function OrdersPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-50 dark:bg-black py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-lg text-neutral-600 dark:text-neutral-400">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <OrdersContent />
+    </Suspense>
   );
 }
 
