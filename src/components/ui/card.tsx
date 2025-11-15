@@ -73,7 +73,7 @@ function BookCard({ book }: BookCardProps) {
             {book.cover_image_url ? (
               <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden shadow-md group-hover/card:shadow-xl transition-all duration-300">
                 <Image
-                  key={book.cover_image_url}
+                  key={`${book.cover_image_url}-${book.updated_at || book.book_id}`}
                   src={book.cover_image_url}
                   alt={book.title}
                   fill

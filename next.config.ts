@@ -41,21 +41,23 @@ const pwaConfig = withPWA({
   buildExcludes: [/middleware-manifest\.json$/],
   runtimeCaching: [
     {
+      // Regla específica para Supabase Storage - debe ir ANTES de la regla general de imágenes
+      // Usa StaleWhileRevalidate para servir cache mientras actualiza en segundo plano
       urlPattern: /^https:\/\/.*\.supabase\.(co|in|storage)\/.*/i,
-      handler: 'NetworkFirst',
+      handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'supabase-images',
         expiration: {
           maxEntries: 100,
-          maxAgeSeconds: 60 * 60 * 24, // 1 día (reducido de 30 días)
+          maxAgeSeconds: 60 * 30, // 30 minutos (muy reducido para forzar actualizaciones frecuentes)
         },
         cacheableResponse: {
           statuses: [0, 200],
         },
-        networkTimeoutSeconds: 10, // Timeout de red antes de usar cache
       },
     },
     {
+      // Regla general para otras imágenes (excluyendo Supabase)
       urlPattern: /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp|svg|ico)$/i,
       handler: 'CacheFirst',
       options: {

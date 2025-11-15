@@ -197,7 +197,7 @@ export default function PreferredGenresCarousel() {
                 <div className="w-full h-56 relative rounded-md overflow-hidden bg-gray-100">
                   {book.cover_image_url ? (
                     <Image 
-                      key={book.cover_image_url}
+                      key={`${book.cover_image_url}-${book.updated_at || book.book_id}`}
                       src={book.cover_image_url} 
                       alt={book.title} 
                       fill 
