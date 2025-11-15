@@ -69,7 +69,7 @@ export async function uploadImage(
     }
 
     // Obtener la URL pública de la imagen
-    // data.path es el path relativo dentro del bucket (ej: "temp-123456.jpg" o "authors/author-123.jpg")
+    // data.path es el path relativo dentro del bucket (ej: "portadas/temp-123456.jpg" o "authors/author-123.jpg")
     // No debe incluir el nombre del bucket
     const { data: urlData } = supabase.storage
       .from(bucket)
@@ -80,14 +80,22 @@ export async function uploadImage(
       return { url: null, error: 'Failed to generate public URL' };
     }
 
-    const publicUrl = urlData.publicUrl;
+    let publicUrl = urlData.publicUrl;
     
     // Validar que la URL contiene el bucket correcto
     if (!publicUrl.includes(bucket)) {
       console.warn(`[Storage] ⚠️ La URL generada no contiene el nombre del bucket '${bucket}'. URL: ${publicUrl}`);
     }
     
+    // Agregar timestamp para cache-busting en URLs nuevas
+    // Esto ayuda a forzar la recarga de imágenes recién subidas
+    const separator = publicUrl.includes('?') ? '&' : '?';
+    publicUrl = `${publicUrl}${separator}t=${Date.now()}`;
+    
     console.log(`[Storage] ✅ Imagen subida exitosamente. Bucket: ${bucket}, Path: ${data.path}, URL: ${publicUrl}`);
+
+    // Pequeño delay para asegurar que la URL esté disponible (especialmente en producción)
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     return { url: publicUrl, error: null };
   } catch (error: unknown) {

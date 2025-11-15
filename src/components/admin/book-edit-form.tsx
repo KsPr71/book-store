@@ -72,9 +72,13 @@ export function BookEditForm({ book, onClose }: BookEditFormProps) {
     const result = await uploadBookCover(tempId, file);
 
     if (result.url) {
-      setCoverImageUrl(result.url);
-      setFormData({ ...formData, cover_image_url: result.url });
-      console.log('✅ URL de imagen guardada en formData:', result.url);
+      // Remover el parámetro de cache-busting antes de guardar en la BD
+      // El parámetro t= solo se usa para visualización, no para almacenar
+      const cleanUrl = result.url.split('?')[0];
+      setCoverImageUrl(cleanUrl);
+      setFormData({ ...formData, cover_image_url: cleanUrl });
+      console.log('✅ URL de imagen guardada en formData (sin cache-busting):', cleanUrl);
+      console.log('📸 URL con cache-busting para preview:', result.url);
     } else {
       const errorMsg = result.error || 'Error al subir la imagen';
       console.error('❌ Error al subir imagen:', errorMsg);

@@ -10,6 +10,7 @@ import BookSpeedDial from "@/components/ui/speedDial";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { BookWithRelations } from '@/types/database';
+import { addCacheBusting, isSupabaseUrl } from '@/lib/utils/image-url';
 
 interface BookCardProps {
   book: BookWithRelations;
@@ -74,14 +75,15 @@ function BookCard({ book }: BookCardProps) {
               <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden shadow-md group-hover/card:shadow-xl transition-all duration-300">
                 <Image
                   key={`${book.cover_image_url}-${book.updated_at || book.book_id}`}
-                  src={book.cover_image_url}
+                  src={addCacheBusting(book.cover_image_url) || book.cover_image_url}
                   alt={book.title}
                   fill
                   className="object-cover transition-transform duration-300 group-hover/card:scale-105"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   loading="lazy"
-                  unoptimized={book.cover_image_url.includes('supabase')}
+                  unoptimized={isSupabaseUrl(book.cover_image_url)}
                   onError={(e) => {
+                    console.error('Error loading image:', book.cover_image_url);
                     // Si la imagen falla, ocultarla y mostrar placeholder
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';

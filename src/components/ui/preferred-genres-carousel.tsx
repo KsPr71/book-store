@@ -7,6 +7,7 @@ import { Snackbar } from '@/components/ui/snackbar';
 import { supabase } from '@/lib/supabase/client';
 import { useBooks } from '@/hooks';
 import type { BookWithRelations } from '@/types/database';
+import { addCacheBusting, isSupabaseUrl } from '@/lib/utils/image-url';
 
 export default function PreferredGenresCarousel() {
   const { booksWithRelations, loading } = useBooks();
@@ -198,12 +199,15 @@ export default function PreferredGenresCarousel() {
                   {book.cover_image_url ? (
                     <Image 
                       key={`${book.cover_image_url}-${book.updated_at || book.book_id}`}
-                      src={book.cover_image_url} 
+                      src={addCacheBusting(book.cover_image_url) || book.cover_image_url} 
                       alt={book.title} 
                       fill 
                       className="object-cover" 
                       sizes="176px"
-                      unoptimized={book.cover_image_url.includes('supabase')}
+                      unoptimized={isSupabaseUrl(book.cover_image_url)}
+                      onError={(e) => {
+                        console.error('Error loading carousel image:', book.cover_image_url);
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-400">Sin portada</div>

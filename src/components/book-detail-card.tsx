@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { BookWithRelations } from '@/types/database';
 import { createWhatsAppUrl } from '@/lib/utils/whatsapp';
+import { addCacheBusting, isSupabaseUrl } from '@/lib/utils/image-url';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -83,13 +84,16 @@ export function BookDetailCard({ book }: BookDetailCardProps) {
               <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden shadow-lg">
                 <Image
                   key={`${book.cover_image_url}-${book.updated_at || book.book_id}`}
-                  src={book.cover_image_url}
+                  src={addCacheBusting(book.cover_image_url) || book.cover_image_url}
                   alt={book.title}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   priority
-                  unoptimized={book.cover_image_url.includes('supabase')}
+                  unoptimized={isSupabaseUrl(book.cover_image_url)}
+                  onError={(e) => {
+                    console.error('Error loading book detail image:', book.cover_image_url);
+                  }}
                 />
               </div>
             ) : (
