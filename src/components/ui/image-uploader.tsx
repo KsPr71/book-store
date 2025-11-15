@@ -27,6 +27,16 @@ export function ImageUploader({
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Sincronizar preview con currentImageUrl cuando cambia desde el padre
+  // Solo cuando se carga inicialmente o cuando el padre actualiza explícitamente
+  React.useEffect(() => {
+    if (currentImageUrl && !uploading && !uploadedUrl) {
+      // Solo actualizar si no hay una URL subida recientemente
+      setPreview(currentImageUrl);
+      setUploadedUrl(currentImageUrl);
+    }
+  }, [currentImageUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Wrapper para onUpload que actualiza el progreso
   const handleUpload = async (file: File) => {
     return onUpload(file).then((result) => {
@@ -72,11 +82,13 @@ export function ImageUploader({
         setProgress(0);
       } else if (result.url) {
         setUploadedUrl(result.url);
+        // Forzar actualización del preview con la nueva URL
         setPreview(result.url);
         setProgress(100);
         if (onProgress) onProgress(100);
         // Notificar al componente padre que la URL está lista
-        console.log('URL de imagen obtenida:', result.url); // Debug
+        console.log('✅ URL de imagen obtenida:', result.url); // Debug
+        console.log('📸 Preview actualizado con URL:', result.url); // Debug
       }
     } catch {
       setError('Error al subir la imagen');
@@ -112,11 +124,18 @@ export function ImageUploader({
         {preview ? (
           <div className="relative w-full h-64 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
             <Image
+              key={preview}
               src={preview}
               alt="Preview"
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 400px"
+              unoptimized={preview.includes('supabase')}
+              onError={() => {
+                console.error('Error loading preview image:', preview);
+                // No ocultar la imagen, solo loguear el error
+                // El usuario puede ver que hay un problema
+              }}
             />
             <button
               type="button"

@@ -176,11 +176,16 @@ export function BookList() {
                       {book.cover_image_url ? (
                         <div className="relative h-16 w-12 rounded overflow-hidden">
                           <Image
+                            key={book.cover_image_url}
                             src={book.cover_image_url}
                             alt={book.title}
                             fill
                             className="object-cover"
                             sizes="48px"
+                            unoptimized={book.cover_image_url.includes('supabase')}
+                            onError={(e) => {
+                              console.error('Error loading book cover in list:', book.cover_image_url);
+                            }}
                           />
                         </div>
                       ) : (
