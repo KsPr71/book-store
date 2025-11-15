@@ -52,6 +52,16 @@ export async function uploadImage(
       if (onProgress) {
         onProgress({ loaded: 0, total: file.size });
       }
+      
+      // Manejo especial para errores 402 (Payment Required / Límite excedido)
+      const errorMessage = error.message || String(error);
+      if (errorMessage.includes('402') || errorMessage.includes('Payment Required')) {
+        return { 
+          url: null, 
+          error: 'Límite de ancho de banda de Supabase excedido. Por favor, verifica tu plan en https://app.supabase.com' 
+        };
+      }
+      
       return { url: null, error: error.message };
     }
 
@@ -132,7 +142,9 @@ export async function uploadAuthorPhoto(
 ): Promise<{ url: string | null; error: string | null }> {
   const extension = file.name.split('.').pop();
   const fileName = `${authorId}-${Date.now()}.${extension}`;
-  const path = `authors/${fileName}`;
+  // El path debe ser solo el nombre del archivo, no incluir la carpeta authors
+  // porque el bucket ya se llama 'authors'
+  const path = fileName;
   
   return uploadImage('authors', file, path, onProgress);
 }
