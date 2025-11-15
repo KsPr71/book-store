@@ -34,8 +34,10 @@ export function generateOrderWhatsAppMessage(order: OrderWithDetails): string {
     lines.push('📚 *Libros solicitados:*');
     order.items.forEach((item: OrderItemWithBook, index: number) => {
       lines.push(`   ${index + 1}. ${item.book.title}`);
-      if (item.book.author) {
-        lines.push(`      Autor: ${item.book.author}`);
+      // Obtener el autor principal (el primero con role 'main_author' o simplemente el primero)
+      const mainAuthor = item.book.authors?.find(author => author.role === 'main_author') || item.book.authors?.[0];
+      if (mainAuthor) {
+        lines.push(`      Autor: ${mainAuthor.full_name}`);
       }
       lines.push(`      Cantidad: ${item.quantity}`);
       lines.push(`      Precio unitario: $${item.unit_price.toFixed(2)}`);
