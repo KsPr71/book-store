@@ -73,12 +73,14 @@ function BookCard({ book }: BookCardProps) {
             {book.cover_image_url ? (
               <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden shadow-md group-hover/card:shadow-xl transition-all duration-300">
                 <Image
+                  key={book.cover_image_url}
                   src={book.cover_image_url}
                   alt={book.title}
                   fill
                   className="object-cover transition-transform duration-300 group-hover/card:scale-105"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   loading="lazy"
+                  unoptimized={book.cover_image_url.includes('supabase')}
                   onError={(e) => {
                     // Si la imagen falla, ocultarla y mostrar placeholder
                     const target = e.target as HTMLImageElement;
@@ -87,9 +89,6 @@ function BookCard({ book }: BookCardProps) {
                     if (parent) {
                       parent.innerHTML = '<div class="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center"><span class="text-gray-400 dark:text-gray-500 text-xs">Error al cargar</span></div>';
                     }
-                  }}
-                  onLoadStart={() => {
-                    // Prevenir errores de timeout silenciosamente
                   }}
                 />
                 

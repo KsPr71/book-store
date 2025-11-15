@@ -196,7 +196,15 @@ export default function PreferredGenresCarousel() {
               >
                 <div className="w-full h-56 relative rounded-md overflow-hidden bg-gray-100">
                   {book.cover_image_url ? (
-                    <Image src={book.cover_image_url} alt={book.title} fill className="object-cover" sizes="176px" />
+                    <Image 
+                      key={book.cover_image_url}
+                      src={book.cover_image_url} 
+                      alt={book.title} 
+                      fill 
+                      className="object-cover" 
+                      sizes="176px"
+                      unoptimized={book.cover_image_url.includes('supabase')}
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-400">Sin portada</div>
                   )}

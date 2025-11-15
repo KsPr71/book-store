@@ -65,12 +65,14 @@ export async function uploadImage(
       .getPublicUrl(data.path);
 
     const publicUrl = urlData.publicUrl;
+    
     console.log(`[Storage] Imagen subida exitosamente. Bucket: ${bucket}, Path: ${data.path}, URL: ${publicUrl}`);
 
     return { url: publicUrl, error: null };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in uploadImage:', error);
-    return { url: null, error: error.message || 'Error al subir la imagen' };
+    const errorMessage = error instanceof Error ? error.message : 'Error al subir la imagen';
+    return { url: null, error: errorMessage };
   }
 }
 
@@ -84,7 +86,8 @@ export async function uploadBookCover(
 ): Promise<{ url: string | null; error: string | null }> {
   const extension = file.name.split('.').pop();
   const fileName = `${bookId}-${Date.now()}.${extension}`;
-  const path = `portadas/${fileName}`;
+  // El path no debe incluir el nombre del bucket, solo la ruta dentro del bucket
+  const path = fileName;
   
   return uploadImage('portadas', file, path, onProgress);
 }
@@ -120,9 +123,10 @@ export async function deleteImage(
     }
     
     return { error: null };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in deleteImage:', error);
-    return { error: error.message || 'Error al eliminar la imagen' };
+    const errorMessage = error instanceof Error ? error.message : 'Error al eliminar la imagen';
+    return { error: errorMessage };
   }
 }
 

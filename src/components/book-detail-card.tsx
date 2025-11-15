@@ -82,12 +82,14 @@ export function BookDetailCard({ book }: BookDetailCardProps) {
             {book.cover_image_url ? (
               <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden shadow-lg">
                 <Image
+                  key={book.cover_image_url}
                   src={book.cover_image_url}
                   alt={book.title}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   priority
+                  unoptimized={book.cover_image_url.includes('supabase')}
                 />
               </div>
             ) : (
