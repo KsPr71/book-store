@@ -80,22 +80,14 @@ export async function uploadImage(
       return { url: null, error: 'Failed to generate public URL' };
     }
 
-    let publicUrl = urlData.publicUrl;
+    const publicUrl = urlData.publicUrl;
     
     // Validar que la URL contiene el bucket correcto
     if (!publicUrl.includes(bucket)) {
       console.warn(`[Storage] ⚠️ La URL generada no contiene el nombre del bucket '${bucket}'. URL: ${publicUrl}`);
     }
     
-    // Agregar timestamp para cache-busting en URLs nuevas
-    // Esto ayuda a forzar la recarga de imágenes recién subidas
-    const separator = publicUrl.includes('?') ? '&' : '?';
-    publicUrl = `${publicUrl}${separator}t=${Date.now()}`;
-    
     console.log(`[Storage] ✅ Imagen subida exitosamente. Bucket: ${bucket}, Path: ${data.path}, URL: ${publicUrl}`);
-
-    // Pequeño delay para asegurar que la URL esté disponible (especialmente en producción)
-    await new Promise(resolve => setTimeout(resolve, 500));
 
     return { url: publicUrl, error: null };
   } catch (error: unknown) {

@@ -72,16 +72,11 @@ export function ImageUploader({
         setProgress(0);
       } else if (result.url) {
         setUploadedUrl(result.url);
-        // Usar la URL con cache-busting para forzar recarga
-        // Remover el parámetro t= si existe y agregarlo de nuevo para forzar recarga
-        const urlWithoutCache = result.url.split('?')[0];
-        const cacheBustedUrl = `${urlWithoutCache}?t=${Date.now()}`;
-        setPreview(cacheBustedUrl);
+        setPreview(result.url);
         setProgress(100);
         if (onProgress) onProgress(100);
         // Notificar al componente padre que la URL está lista
         console.log('URL de imagen obtenida:', result.url); // Debug
-        console.log('URL con cache-busting para preview:', cacheBustedUrl); // Debug
       }
     } catch {
       setError('Error al subir la imagen');
@@ -117,18 +112,11 @@ export function ImageUploader({
         {preview ? (
           <div className="relative w-full h-64 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
             <Image
-              key={preview}
               src={preview}
               alt="Preview"
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 400px"
-              unoptimized={preview.includes('supabase')}
-              onError={(e) => {
-                console.error('Error loading preview image:', preview);
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
             />
             <button
               type="button"
