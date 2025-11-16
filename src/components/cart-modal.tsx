@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { CountryPhoneSelector, formatFullPhoneNumber, parsePhoneNumber } from '@/components/ui/country-phone-selector';
 import { openOrderWhatsApp } from '@/lib/utils/whatsapp';
 import type { CheckoutData } from '@/types/database';
+import { shouldOptimizeImage } from '@/lib/utils';
 
 interface CartModalProps {
   isOpen: boolean;
@@ -379,6 +380,7 @@ export function CartModal({ isOpen, onClose }: CartModalProps) {
                             alt={item.book.title}
                             fill
                             className="object-cover"
+                            unoptimized={!shouldOptimizeImage(item.book.cover_image_url)}
                           />
                         ) : (
                           <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">

@@ -9,6 +9,7 @@ import {
 } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
+import { shouldOptimizeImage } from '@/lib/utils';
 
 
 
@@ -167,7 +168,7 @@ export const ProductCard = ({
               alt={product.title}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority={false}
-              unoptimized={product.thumbnail.includes('supabase')}
+              unoptimized={!shouldOptimizeImage(product.thumbnail)}
               onError={() => {
                 // Log error si la imagen no carga
                 console.error('Error loading image:', product.thumbnail, 'for book:', product.title);

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import type { OrderWithDetails, OrderItemWithBook } from '@/types/database';
+import { shouldOptimizeImage } from '@/lib/utils';
 
 function OrdersContent() {
   const router = useRouter();
@@ -180,6 +181,7 @@ function OrdersContent() {
                             alt={item.book.title}
                             fill
                             className="object-cover"
+                            unoptimized={!shouldOptimizeImage(item.book.cover_image_url)}
                           />
                         ) : (
                           <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">

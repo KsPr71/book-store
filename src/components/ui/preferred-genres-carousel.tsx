@@ -7,6 +7,7 @@ import { Snackbar } from '@/components/ui/snackbar';
 import { supabase } from '@/lib/supabase/client';
 import { useBooks } from '@/hooks';
 import type { BookWithRelations } from '@/types/database';
+import { shouldOptimizeImage } from '@/lib/utils';
 
 export default function PreferredGenresCarousel() {
   const { booksWithRelations, loading } = useBooks();
@@ -203,7 +204,7 @@ export default function PreferredGenresCarousel() {
                       fill 
                       className="object-cover" 
                       sizes="176px"
-                      unoptimized={book.cover_image_url.includes('supabase')}
+                      unoptimized={!shouldOptimizeImage(book.cover_image_url)}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-400">Sin portada</div>

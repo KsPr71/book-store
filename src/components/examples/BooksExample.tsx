@@ -9,6 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useBooks, useAuthors, useCategories } from '@/hooks';
 import { InfiniteMovingCards } from '../ui/infinite-moving-cards';
+import { shouldOptimizeImage } from '@/lib/utils';
 
 export function BooksExample() {
   const { books, featuredBooks, booksWithRelations, loading: loadingBooks } = useBooks();
@@ -65,6 +66,7 @@ export function BooksExample() {
                       fill
                       className="object-cover"
                       sizes="80px"
+                      unoptimized={!shouldOptimizeImage(book.cover_image_url)}
                     />
                   </div>
                 )}

@@ -7,6 +7,7 @@ import type { BookWithRelations } from '@/types/database';
 import { createWhatsAppUrl } from '@/lib/utils/whatsapp';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { shouldOptimizeImage } from '@/lib/utils';
 
 interface BookDetailCardProps {
   book: BookWithRelations;
@@ -89,7 +90,7 @@ export function BookDetailCard({ book }: BookDetailCardProps) {
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   priority
-                  unoptimized={book.cover_image_url.includes('supabase')}
+                  unoptimized={!shouldOptimizeImage(book.cover_image_url)}
                 />
               </div>
             ) : (

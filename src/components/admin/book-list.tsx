@@ -8,6 +8,7 @@ import { Trash2, Edit2, X, Search } from 'lucide-react';
 import { BookEditForm } from './book-edit-form';
 import type { BookWithRelations } from '@/types/database';
 import { Input } from '@/components/ui/input';
+import { shouldOptimizeImage } from '@/lib/utils';
 
 export function BookList() {
   const { booksWithRelations, refreshBooks } = useBooks();
@@ -182,7 +183,7 @@ export function BookList() {
                             fill
                             className="object-cover"
                             sizes="48px"
-                            unoptimized={book.cover_image_url.includes('supabase')}
+                            unoptimized={!shouldOptimizeImage(book.cover_image_url)}
                             onError={(e) => {
                               console.error('Error loading book cover in list:', book.cover_image_url);
                             }}

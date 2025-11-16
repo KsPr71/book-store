@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Upload, X } from 'lucide-react';
 import Image from 'next/image';
+import { shouldOptimizeImage } from '@/lib/utils';
 
 interface ImageUploaderProps {
   onUpload: (file: File) => Promise<{ url: string | null; error: string | null }>;
@@ -130,7 +131,7 @@ export function ImageUploader({
               fill
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 400px"
-              unoptimized={preview.includes('supabase')}
+              unoptimized={!shouldOptimizeImage(preview)}
               onError={() => {
                 console.error('Error loading preview image:', preview);
                 // No ocultar la imagen, solo loguear el error

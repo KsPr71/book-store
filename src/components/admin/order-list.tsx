@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { checkIsAdmin } from '@/lib/supabase/admin';
 import Image from 'next/image';
 import type { OrderWithDetails, OrderStatus, OrderItemWithBook } from '@/types/database';
+import { shouldOptimizeImage } from '@/lib/utils';
 
 export function OrderList() {
   const { user } = useAuth();
@@ -248,6 +249,7 @@ export function OrderList() {
                           alt={item.book.title}
                           fill
                           className="object-cover"
+                          unoptimized={!shouldOptimizeImage(item.book.cover_image_url)}
                         />
                       ) : (
                         <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
