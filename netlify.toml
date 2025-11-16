@@ -7,6 +7,8 @@
   NETLIFY = "true"
   # Deshabilitar PWA en Netlify si causa problemas
   DISABLE_PWA = "false"
+  # Excluir variables NEXT_PUBLIC_* del escaneo de secretos (son públicas por diseño)
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_VAPID_PUBLIC_KEY"
 
 # Configuración para Next.js
 [[plugins]]
