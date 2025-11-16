@@ -33,6 +33,7 @@
     "web-push": "^3.5.0"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.14.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

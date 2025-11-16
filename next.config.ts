@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
+  // Configuración para Netlify
+  output: process.env.NETLIFY === 'true' ? 'standalone' : undefined,
   images: {
     remotePatterns: [
       {

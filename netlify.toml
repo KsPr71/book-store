@@ -1,0 +1,24 @@
+[build]
+  command = "NETLIFY=true npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NETLIFY = "true"
+  # Deshabilitar PWA en Netlify si causa problemas
+  DISABLE_PWA = "false"
+
+# Configuración para Next.js
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Configuración de funciones serverless
+[functions]
+  node_bundler = "esbuild"
+  # Incluir node_modules necesarios
+  included_files = ["node_modules/web-push/**"]
+  
+# Configuración para ignorar ciertos archivos en el build
+[build.ignore]
+  ignore = "node_modules"
+
