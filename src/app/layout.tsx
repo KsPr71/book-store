@@ -9,9 +9,21 @@ import { CartProvider } from "@/contexts/CartContext";
 import { NavbarWrapper } from "@/components/navbar-wrapper";
 import { FooterWithLogo } from "@/components/ui/footer";
 import { ThemeProvider } from "@/components/ui/theme-provider";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
+
+// Importar Analytics y SpeedInsights condicionalmente
+let Analytics: React.ComponentType = () => null;
+let SpeedInsights: React.ComponentType = () => null;
+
+if (process.env.NETLIFY !== 'true') {
+  try {
+    Analytics = require("@vercel/analytics/react").Analytics;
+    SpeedInsights = require("@vercel/speed-insights/next").SpeedInsights;
+  } catch (e) {
+    // Si falla el import, usar componentes vacíos
+    console.warn('Vercel Analytics/SpeedInsights no disponibles');
+  }
+}
 import { PWAHead } from "@/components/pwa-head";
 import { PWAInstallButton } from "@/components/pwa-install-button";
 
