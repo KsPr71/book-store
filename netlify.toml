@@ -17,8 +17,4 @@
   node_bundler = "esbuild"
   # Incluir node_modules necesarios
   included_files = ["node_modules/web-push/**"]
-  
-# Configuración para ignorar ciertos archivos en el build
-[build.ignore]
-  ignore = "node_modules"
 
