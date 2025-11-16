@@ -7,8 +7,10 @@
   NETLIFY = "true"
   # Deshabilitar PWA en Netlify si causa problemas
   DISABLE_PWA = "false"
-  # Excluir variables NEXT_PUBLIC_* del escaneo de secretos (son públicas por diseño)
-  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_VAPID_PUBLIC_KEY"
+  # Excluir variables públicas del escaneo de secretos
+  # NEXT_PUBLIC_* son públicas por diseño en Next.js
+  # VAPID_PUBLIC_KEY es pública (la privada VAPID_PRIVATE_KEY no debe estar en el build)
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_VAPID_PUBLIC_KEY,VAPID_PUBLIC_KEY"
 
 # Configuración para Next.js
 [[plugins]]
